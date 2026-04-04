@@ -1,24 +1,24 @@
 {
-  "generated_at": "2026-04-04T01:34:36.815138+00:00",
+  "generated_at": "2026-04-04T06:13:00.276098+00:00",
   "unified_feed": {
-    "generated_at": "2026-04-03T16:11:39.634603",
+    "generated_at": "2026-04-03T22:58:22.323515",
     "systems": {
       "kalshi": {
         "status": "live",
-        "published_at": "2026-04-03T16:11:38.818517",
+        "published_at": "2026-04-03T22:58:19.907248",
         "sector_signals": 1,
         "opportunities": 20
       },
       "sentinel": {
         "status": "live",
-        "published_at": "2026-04-03T16:11:38.848790",
+        "published_at": "2026-04-03T22:58:20.924944",
         "narrative_signals": 10,
         "pattern_alerts": 4,
-        "market_signals": 12
+        "market_signals": 18
       },
       "squeeze_bot": {
         "status": "live",
-        "published_at": "2026-04-03T16:11:38.956954",
+        "published_at": "2026-04-03T22:58:21.656855",
         "positions": 10,
         "equity": 100517.12
       }
@@ -96,7 +96,7 @@
   },
   "narrative_signals": {
     "source": "sentinel_compass",
-    "published_at": "2026-04-03T16:11:38.848790",
+    "published_at": "2026-04-03T22:58:20.924944",
     "status": "live",
     "narrative_signals": [
       {
@@ -374,6 +374,54 @@
         "price_change": 0.04,
         "category": "defense",
         "last_updated": "2026-04-03T08:00:00"
+      },
+      {
+        "contract": "Democrats control Senate 2026",
+        "platform": "Kalshi",
+        "current_price": 0.51,
+        "price_change": 0.11,
+        "category": "elections",
+        "last_updated": "2026-03-24"
+      },
+      {
+        "contract": "Republicans control Senate 2026",
+        "platform": "Kalshi",
+        "current_price": 0.49,
+        "price_change": -0.11,
+        "category": "elections",
+        "last_updated": "2026-03-24"
+      },
+      {
+        "contract": "Trump job approval >45%",
+        "platform": "Polymarket",
+        "current_price": 0.22,
+        "price_change": -0.06,
+        "category": "approval",
+        "last_updated": "2026-03-24"
+      },
+      {
+        "contract": "Iran-US ceasefire by April 2026",
+        "platform": "Kalshi",
+        "current_price": 0.35,
+        "price_change": 0.15,
+        "category": "foreign_policy",
+        "last_updated": "2026-03-24"
+      },
+      {
+        "contract": "Oil price >$110/bbl by April 2026",
+        "platform": "Kalshi",
+        "current_price": 0.42,
+        "price_change": -0.13,
+        "category": "energy",
+        "last_updated": "2026-03-24"
+      },
+      {
+        "contract": "Brent crude spot ~$100/bbl",
+        "platform": "Market",
+        "current_price": 100.0,
+        "price_change": -26.0,
+        "category": "energy",
+        "last_updated": "2026-03-24"
       }
     ],
     "claim_summary": {
@@ -405,8 +453,8 @@
           "macro"
         ],
         "instrument": "kxforeigntariff/retaliatory-tariffs",
-        "proposed_size": 250,
-        "kelly_quarter": 75,
+        "proposed_size": 8,
+        "kelly_quarter": 5,
         "direction": "YES",
         "confidence": 0.72
       },
@@ -418,8 +466,8 @@
           "finance"
         ],
         "instrument": "kxratecut/fed-rate-cut/kxratecut-26dec31",
-        "proposed_size": 75,
-        "kelly_quarter": 50,
+        "proposed_size": 10,
+        "kelly_quarter": 6,
         "direction": "NO",
         "confidence": 0.65
       },
@@ -432,8 +480,8 @@
           "energy"
         ],
         "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
-        "proposed_size": 150,
-        "kelly_quarter": 45,
+        "proposed_size": 7,
+        "kelly_quarter": 4,
         "direction": "YES",
         "confidence": 0.58
       }
