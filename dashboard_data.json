@@ -404,7 +404,7 @@
           "trade_policy",
           "macro"
         ],
-        "instrument": "TARIFF-EU-2026-APR",
+        "instrument": "kxforeigntariff/retaliatory-tariffs",
         "proposed_size": 250,
         "kelly_quarter": 75,
         "direction": "YES",
@@ -417,7 +417,7 @@
           "macro",
           "finance"
         ],
-        "instrument": "FED-RATE-2026-Q2",
+        "instrument": "kxratecut/fed-rate-cut/kxratecut-26dec31",
         "proposed_size": 75,
         "kelly_quarter": 50,
         "direction": "NO",
@@ -431,7 +431,7 @@
           "defense",
           "energy"
         ],
-        "instrument": "TAIWAN-STRAIT-2026",
+        "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
         "proposed_size": 150,
         "kelly_quarter": 45,
         "direction": "YES",
