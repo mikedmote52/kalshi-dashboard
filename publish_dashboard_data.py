@@ -14,6 +14,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import List, Optional
 
 REPO_DIR = Path(__file__).parent.resolve()
 UNIFIED_FEED = Path.home() / "Desktop/intelligence-bridge/bridge-status/unified_feed.json"
@@ -84,7 +85,7 @@ def read_json(path: Path, label: str):
         return None
 
 
-def run(cmd: list[str], cwd=None):
+def run(cmd: List[str], cwd=None):
     result = subprocess.run(cmd, cwd=cwd or REPO_DIR, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"  ! {' '.join(cmd)}\n    {result.stderr.strip()}")
@@ -119,7 +120,7 @@ def read_approvals() -> list:
         return []
 
 
-def fetch_pending_from_db() -> list | None:
+def fetch_pending_from_db() -> Optional[List]:
     """
     Attempt to read pending approvals from Postgres approval_queue table.
     Returns None if DB is not accessible (falls back to sample data).
