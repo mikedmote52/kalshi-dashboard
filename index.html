@@ -143,7 +143,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-001",
       thesis_summary: "EU counter-tariff vote likely before April 15 — Kalshi market (66¢) underprices passage probability given EC committee composition and Liberation Day political pressure. EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements.",
       cascade_chain: ["geo", "trade_policy", "macro"],
-      instrument: "TARIFF-EU-2026-APR",
+      instrument: "kxeutablet/eu-counter-tariff-apr",
       proposed_size: 8,
       kelly_quarter: 5,
       direction: "YES",
@@ -153,7 +153,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-002",
       thesis_summary: "Fed has no runway to cut before Q2 end. Three governor speeches in 48 hours confirm hold. Inflation sticky at 3.1%. Market at 22¢ still overpricing a cut — consensus requires 3 consecutive months below 2.5%, unachievable by July under current trajectory.",
       cascade_chain: ["macro", "finance"],
-      instrument: "FED-RATE-2026-Q2",
+      instrument: "kxfedrate/fed-rate-cut-q2",
       proposed_size: 10,
       kelly_quarter: 6,
       direction: "NO",
@@ -163,7 +163,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-003",
       thesis_summary: "PLA strait exercises correlate with rhetorical escalation phase, not kinetic precursor. Xi economic focus constrains military adventurism during tariff war — historical pattern shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda.",
       cascade_chain: ["geo", "defense", "energy"],
-      instrument: "TAIWAN-STRAIT-2026",
+      instrument: "kxgeopolitical/taiwan-strait-conflict",
       proposed_size: 7,
       kelly_quarter: 4,
       direction: "YES",
@@ -173,7 +173,7 @@ const SAMPLE_THESIS_DASHBOARD = {
   active_positions: [
     {
       id: "pos-001",
-      instrument: "RECESSION-2026",
+      instrument: "kxrecession/us-recession-2026",
       direction: "YES",
       entry_price: 0.28,
       current_price: 0.41,
@@ -197,7 +197,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-002",
-      instrument: "FED-RATE-CUT-JUL",
+      instrument: "kxfedrate/fed-rate-cut-jul",
       direction: "NO",
       entry_price: 0.38,
       current_price: 0.22,
@@ -220,7 +220,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-003",
-      instrument: "TAIWAN-INCIDENT-2026",
+      instrument: "kxgeopolitical/taiwan-incident-2026",
       direction: "NO",
       entry_price: 0.19,
       current_price: 0.23,
@@ -619,9 +619,12 @@ function ApprovalCard({ approval, onOpenKalshi, onReject }) {
           <span>Trade on Kalshi</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </button>
+        <p className="text-xs text-gray-600 text-center font-mono break-all leading-tight">
+          kalshi.com/markets/{approval.instrument.toLowerCase()}
+        </p>
         <div className="flex items-center gap-3">
           <a
-            href={`https://kalshi.com/markets/${approval.instrument}`}
+            href={`https://kalshi.com/markets/${approval.instrument.toLowerCase()}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 text-center text-xs text-gray-500 hover:text-gray-400 py-1 transition-colors"
@@ -842,7 +845,9 @@ function TradeCommand({ thesisData }) {
   };
 
   const handleOpenKalshi = (approval, amount) => {
-    window.open(`https://kalshi.com/markets/${approval.instrument}`, '_blank');
+    const kalshiUrl = `https://kalshi.com/markets/${approval.instrument.toLowerCase()}`;
+    console.log('[Kalshi] Opening URL:', kalshiUrl);
+    window.open(kalshiUrl, '_blank');
     const entry = {
       id: approval.id,
       instrument: approval.instrument,
