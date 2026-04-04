@@ -143,7 +143,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-001",
       thesis_summary: "EU counter-tariff vote likely before April 15 — Kalshi market (66¢) underprices passage probability given EC committee composition and Liberation Day political pressure. EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements.",
       cascade_chain: ["geo", "trade_policy", "macro"],
-      instrument: "kxeutablet/eu-counter-tariff-apr",
+      instrument: "EUCOUNTTAR-26APR15",
       proposed_size: 8,
       kelly_quarter: 5,
       direction: "YES",
@@ -153,7 +153,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-002",
       thesis_summary: "Fed has no runway to cut before Q2 end. Three governor speeches in 48 hours confirm hold. Inflation sticky at 3.1%. Market at 22¢ still overpricing a cut — consensus requires 3 consecutive months below 2.5%, unachievable by July under current trajectory.",
       cascade_chain: ["macro", "finance"],
-      instrument: "kxfedrate/fed-rate-cut-q2",
+      instrument: "FED-26Q2",
       proposed_size: 10,
       kelly_quarter: 6,
       direction: "NO",
@@ -163,7 +163,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-003",
       thesis_summary: "PLA strait exercises correlate with rhetorical escalation phase, not kinetic precursor. Xi economic focus constrains military adventurism during tariff war — historical pattern shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda.",
       cascade_chain: ["geo", "defense", "energy"],
-      instrument: "kxgeopolitical/taiwan-strait-conflict",
+      instrument: "TAIWANSTRAIT-26",
       proposed_size: 7,
       kelly_quarter: 4,
       direction: "YES",
@@ -173,7 +173,7 @@ const SAMPLE_THESIS_DASHBOARD = {
   active_positions: [
     {
       id: "pos-001",
-      instrument: "kxrecession/us-recession-2026",
+      instrument: "USRECESSION-26",
       direction: "YES",
       entry_price: 0.28,
       current_price: 0.41,
@@ -197,7 +197,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-002",
-      instrument: "kxfedrate/fed-rate-cut-jul",
+      instrument: "FED-26JUL",
       direction: "NO",
       entry_price: 0.38,
       current_price: 0.22,
@@ -220,7 +220,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-003",
-      instrument: "kxgeopolitical/taiwan-incident-2026",
+      instrument: "TAIWANINC-26",
       direction: "NO",
       entry_price: 0.19,
       current_price: 0.23,
@@ -644,7 +644,7 @@ function ApprovalCard({ approval, onOpenKalshi, onReject }) {
 }
 
 // ─── OPENED CARD ─────────────────────────────────────────────────────────────
-function OpenedCard({ entry, onMarkExecuted, onMarkSkipped }) {
+function OpenedCard({ entry, onMarkExecuted, onMarkSkipped, onReturnToPending }) {
   return (
     <div className="bg-gray-800 rounded-xl border border-blue-700 p-4 space-y-3">
       <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -674,6 +674,12 @@ function OpenedCard({ entry, onMarkExecuted, onMarkSkipped }) {
           Mark as Skipped
         </button>
       </div>
+      <button
+        onClick={() => onReturnToPending(entry)}
+        className="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 transition-colors"
+      >
+        Return to Pending
+      </button>
     </div>
   );
 }
@@ -775,6 +781,14 @@ function TradeCommand({ thesisData }) {
 
   const [apiConnected, setApiConnected] = useState(false);
   const [apiPending, setApiPending] = useState(null);
+
+  // Clean up old localStorage keys from prior versions
+  useEffect(() => {
+    try {
+      localStorage.removeItem('kalshi_decisions');
+      localStorage.removeItem('kalshi_trade_decisions');
+    } catch(e) {}
+  }, []);
 
   useEffect(() => {
     const pollPending = async () => {
@@ -895,6 +909,13 @@ function TradeCommand({ thesisData }) {
     addToast(`Skipped: ${entry.instrument}`, 'info');
   };
 
+  const handleReturnToPending = (entry) => {
+    const newDecisions = { ...decisions, opened: decisions.opened.filter(d => d.id !== entry.id) };
+    setDecisions(newDecisions);
+    persistDecisions(newDecisions);
+    addToast(`Returned ${entry.instrument} to pending`, 'info');
+  };
+
   const handleReject = async (approval) => {
     try {
       const res = await fetch(`${API_BASE}/api/approve`, {
@@ -993,6 +1014,7 @@ function TradeCommand({ thesisData }) {
               entry={entry}
               onMarkExecuted={handleMarkExecuted}
               onMarkSkipped={handleMarkSkipped}
+              onReturnToPending={handleReturnToPending}
             />
           ))}
         </div>
