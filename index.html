@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalshi Intelligence Dashboard</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'dash-bg': '#0f1117',
+            'dash-card': '#1a1d2e',
+            'dash-border': '#2a2d3e',
+            'dash-muted': '#6b7280',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0f1117; color: #f3f4f6; font-family: 'Inter', system-ui, sans-serif; }
+    .health-bar { background: linear-gradient(to right, #ef4444 0%, #f59e0b 50%, #22c55e 100%); }
+    .sparkline-path { fill: none; stroke: #60a5fa; stroke-width: 1.5; }
+    .tab-active { border-bottom: 2px solid #60a5fa; color: #60a5fa; }
+    .card-expand { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .card-expand.open { max-height: 1000px; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .live-dot { animation: pulse-dot 1.5s infinite; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ─── EMBEDDED SAMPLE DATA (fallback when no publish has run) ──────────────────
+const SAMPLE_UNIFIED_FEED = {
+  generated_at: new Date().toISOString(),
+  systems: {
+    kalshi: { status: "live", sector_signals: 1, opportunities: 20 },
+    sentinel: { status: "live", narrative_signals: 10, pattern_alerts: 4, market_signals: 12 },
+    squeeze_bot: { status: "live", positions: 10, equity: 100517.12 }
+  },
+  sector_consensus: {
+    equity: { sources: ["kalshi"], direction: "neutral", confidence: 0 },
+    agriculture: { sources: ["sentinel","sentinel","sentinel","sentinel"], direction: "bearish", confidence: 72 },
+    tech_ai: { sources: ["sentinel","sentinel","sentinel","sentinel","sentinel","sentinel","sentinel","sentinel"], direction: "bearish", confidence: 68 },
+    finance: { sources: ["sentinel","sentinel","sentinel","sentinel"], direction: "bearish", confidence: 75 },
+    defense: { sources: ["sentinel","sentinel","sentinel","sentinel"], direction: "active", confidence: 58 },
+    energy: { sources: ["sentinel","sentinel"], direction: "active", confidence: 44 },
+    real_estate: { sources: ["sentinel"], direction: "active", confidence: 31 }
+  },
+  active_cascades: [
+    { id: "tariff-cascade", chain: ["trade_policy","agriculture","finance","equity"], trigger: "Liberation Day tariffs", confidence: 82 },
+    { id: "fed-cascade", chain: ["monetary_policy","finance","tech_ai"], trigger: "Fed independence stress", confidence: 67 }
+  ],
+  bridge_health: "healthy"
+};
+
+const SAMPLE_NARRATIVE = {
+  published_at: new Date().toISOString(),
+  narrative_signals: [
+    {
+      title: "EU Prepares Counter-Tariff Package on U.S. Goods",
+      date: "2026-04-03", category: "trade_policy",
+      affected_sectors: ["agriculture"],
+      sentiment: "negative",
+      structural_tags: ["authority_shift", "amplification_pattern"],
+      description: "European Commission announced a preliminary counter-tariff package targeting $70B in U.S. goods including agricultural products, motorcycles, and bourbon."
+    },
+    {
+      title: "Fed Officials Signal Rate Hold Despite Trump Pressure",
+      date: "2026-04-02", category: "monetary_policy",
+      affected_sectors: ["tech_ai","finance"],
+      sentiment: "confirmed",
+      structural_tags: ["source_independence","contradiction_detection"],
+      description: "Three Federal Reserve governors gave speeches indicating no rate cut in April meeting. Fed Governor Waller stated inflation remains \"sticky\" at 3.1%."
+    },
+    {
+      title: "NATO Emergency Session on Ukraine Ceasefire Talks",
+      date: "2026-04-02", category: "ukraine_conflict",
+      affected_sectors: ["defense","tech_ai","finance"],
+      sentiment: "negative",
+      structural_tags: ["contradiction_detection","authority_shift"],
+      description: "NATO held an emergency foreign ministers session to align on Ukraine ceasefire negotiation stance. Allies divided on territorial concessions."
+    },
+    {
+      title: "Trump Signs Liberation Day Tariff Executive Order",
+      date: "2026-04-02", category: "trade_policy",
+      affected_sectors: ["agriculture"],
+      sentiment: "negative",
+      structural_tags: ["authority_shift","amplification_pattern"],
+      description: "President Trump signed an executive order imposing reciprocal tariffs ranging from 10% to 54% on imports from over 60 countries, effective April 5."
+    },
+    {
+      title: "OPEC+ Delays Output Increase Amid Tariff Uncertainty",
+      date: "2026-03-28", category: "energy_markets",
+      affected_sectors: ["energy","tech_ai","agriculture","real_estate"],
+      sentiment: "confirmed",
+      structural_tags: ["source_independence"],
+      description: "OPEC+ deferred a planned 400,000 bpd output increase by 60 days, citing demand uncertainty from U.S. tariff impacts. Brent crude rose 2.4%."
+    }
+  ],
+  pattern_alerts: [
+    { pattern: "authority_shift", frequency: 5, market_implication: "Institutional instability — increased volatility, defense sector sensitivity" },
+    { pattern: "amplification_pattern", frequency: 3, market_implication: "Coordinated narrative push — watch for pump-and-dump dynamics in affected sectors" },
+    { pattern: "contradiction_detection", frequency: 2, market_implication: "Official contradictions — credibility risk, sector uncertainty" }
+  ],
+  market_signals: [
+    { contract: "Will Trump fire Jerome Powell in 2026?", platform: "Kalshi", current_price: 0.19, price_change: 0.10, category: "finance" },
+    { contract: "Will U.S. enter recession in 2026?", platform: "Kalshi", current_price: 0.41, price_change: 0.13, category: "finance" },
+    { contract: "Will Brent crude exceed $90/bbl by June 2026?", platform: "Kalshi", current_price: 0.44, price_change: 0.08, category: "energy" },
+    { contract: "Will Fed cut rates before July 2026?", platform: "Kalshi", current_price: 0.22, price_change: -0.16, category: "finance" },
+    { contract: "Will China impose counter-tariffs on U.S. goods by May 2026?", platform: "Polymarket", current_price: 0.78, price_change: 0.17, category: "trade" },
+    { contract: "Will EU implement counter-tariffs on U.S. goods before July 2026?", platform: "Polymarket", current_price: 0.66, price_change: 0.17, category: "trade" },
+    { contract: "Will Ukraine-Russia ceasefire be signed before end of 2026?", platform: "Polymarket", current_price: 0.27, price_change: 0.06, category: "defense" }
+  ],
+  trajectory: {
+    update: "Multi-front pressure campaign in week one of April. Trade war escalation is primary market mover — Kalshi recession odds jumped 13 points in 48 hours. Pattern alert: authority_shift and amplification_pattern co-occurring across trade, monetary, and defense domains simultaneously — historically associated with volatility clustering.",
+    key_events: [
+      "Trump Liberation Day tariffs signed — 54% on China, 20% EU, effective April 5",
+      "China counter-tariff threat escalates — MFA statement signals broad retaliation",
+      "Fed officials hold line on rates despite Trump pressure — Powell removal risk elevated",
+      "NATO fractures on Ukraine ceasefire terms — Baltic vs France/Germany divide",
+      "DOGE savings audit shows $2.7T claim inflated by ~18x per CBO"
+    ],
+    date: "2026-04-03"
+  },
+  claim_summary: { false: 1, misleading: 2, missing_context: 1, verified: 1 }
+};
+
+const SAMPLE_THESIS_DASHBOARD = {
+  pending_approvals: [
+    {
+      id: "th-001",
+      thesis_summary: "EU counter-tariff passage probability rising faster than Kalshi reflects — EC vote expected before April 15",
+      cascade_chain: ["trade_policy","agriculture","equity"],
+      instrument: "TARIFF-EU-2026-APR",
+      proposed_size: 250,
+      direction: "YES",
+      confidence: 0.71,
+      telegram_cmd: "/approve th-001 YES $250"
+    }
+  ],
+  active_positions: [
+    {
+      id: "pos-001",
+      instrument: "RECESSION-2026",
+      direction: "YES",
+      entry_price: 0.28,
+      current_price: 0.41,
+      size: 500,
+      thesis_health: 84,
+      status: "thesis_intact",
+      pnl: 65.00,
+      thesis: "Tariff shock (54% on China, 20% EU) creates demand destruction. Historical precedent: 2018-19 tariff cycle produced 2-quarter GDP drag. Current labor market softness amplifies downside.",
+      key_assumptions: [
+        { text: "Tariffs implemented as announced (April 5)", valid: true },
+        { text: "No Fed emergency cut before June", valid: true },
+        { text: "China does not negotiate bilateral exemption", valid: null },
+        { text: "Consumer sentiment continues deteriorating", valid: true }
+      ],
+      falsification_triggers: [
+        "Trump announces tariff pause or rollback",
+        "Fed cuts rates before Q2 end",
+        "GDP Q1 print above 2.5%"
+      ],
+      health_history: [62, 68, 71, 78, 82, 84]
+    },
+    {
+      id: "pos-002",
+      instrument: "FED-RATE-CUT-JUL",
+      direction: "NO",
+      entry_price: 0.38,
+      current_price: 0.22,
+      size: 300,
+      thesis_health: 91,
+      status: "thesis_intact",
+      pnl: 48.00,
+      thesis: "Fed governors have explicitly stated no cut in April. Inflation at 3.1% (sticky). Trump pressure historically causes Fed to hold or tighten to prove independence. Consensus requires 3 consecutive months below 2.5% — not achievable by July.",
+      key_assumptions: [
+        { text: "Inflation stays above 2.5% through Q2", valid: true },
+        { text: "Powell not fired or resigned", valid: true },
+        { text: "No financial market crisis forcing emergency cut", valid: true }
+      ],
+      falsification_triggers: [
+        "Emergency FOMC meeting called",
+        "Powell removal and replacement signals dovish pivot",
+        "CPI drops below 2.5% two consecutive months"
+      ],
+      health_history: [70, 75, 80, 85, 89, 91]
+    },
+    {
+      id: "pos-003",
+      instrument: "TAIWAN-INCIDENT-2026",
+      direction: "NO",
+      entry_price: 0.19,
+      current_price: 0.23,
+      size: 150,
+      thesis_health: 52,
+      status: "monitoring",
+      pnl: -6.00,
+      thesis: "PLA exercises are signaling behavior, not operational precursor. Xi prioritizes economic stability during tariff war. Incident risk historically spikes post-party congress, not mid-year.",
+      key_assumptions: [
+        { text: "PLA exercises remain demonstrative, not kinetic", valid: true },
+        { text: "U.S. does not deploy carrier group through strait", valid: null },
+        { text: "Xi economic focus limits military adventurism", valid: true }
+      ],
+      falsification_triggers: [
+        "U.S. carrier group transit of Taiwan Strait",
+        "Taiwan declares emergency",
+        "PLA live-fire hits Taiwanese territorial waters"
+      ],
+      health_history: [75, 72, 68, 60, 55, 52]
+    }
+  ]
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function timeAgo(isoStr) {
+  if (!isoStr) return "unknown";
+  const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function directionColor(d) {
+  if (!d) return "text-gray-400";
+  const dl = d.toLowerCase();
+  if (dl === "bullish" || dl === "positive" || dl === "confirmed") return "text-green-400";
+  if (dl === "bearish" || dl === "negative") return "text-red-400";
+  if (dl === "neutral" || dl === "mixed") return "text-yellow-400";
+  return "text-blue-400";
+}
+
+function directionBg(d) {
+  if (!d) return "bg-gray-700";
+  const dl = d.toLowerCase();
+  if (dl === "bullish" || dl === "positive" || dl === "confirmed") return "bg-green-900 text-green-300 border border-green-700";
+  if (dl === "bearish" || dl === "negative") return "bg-red-900 text-red-300 border border-red-700";
+  if (dl === "neutral" || dl === "mixed") return "bg-yellow-900 text-yellow-300 border border-yellow-700";
+  return "bg-blue-900 text-blue-300 border border-blue-700";
+}
+
+function sentimentBg(s) {
+  if (!s) return "bg-gray-700 text-gray-300";
+  const sl = s.toLowerCase();
+  if (sl === "negative") return "bg-red-900 text-red-300";
+  if (sl === "confirmed" || sl === "positive") return "bg-green-900 text-green-300";
+  return "bg-yellow-900 text-yellow-300";
+}
+
+function healthColor(v) {
+  if (v >= 75) return "#22c55e";
+  if (v >= 50) return "#f59e0b";
+  return "#ef4444";
+}
+
+function formatSector(s) {
+  return s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── SPARKLINE ───────────────────────────────────────────────────────────────
+function Sparkline({ data, width = 80, height = 30 }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((v - min) / range) * height;
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg width={width} height={height} className="inline-block">
+      <polyline points={pts} className="sparkline-path" />
+    </svg>
+  );
+}
+
+// ─── HEALTH BAR ──────────────────────────────────────────────────────────────
+function HealthBar({ value }) {
+  return (
+    <div className="relative w-full h-2 rounded-full bg-gray-700 overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all"
+        style={{
+          width: `${value}%`,
+          background: `linear-gradient(to right, #ef4444, #f59e0b 50%, #22c55e)`,
+          backgroundSize: "200% 100%",
+          backgroundPosition: `${100 - value}% 0`
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── CASCADE CHAIN ───────────────────────────────────────────────────────────
+function CascadeChain({ chain }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {chain.map((node, i) => (
+        <React.Fragment key={i}>
+          <span className="px-2 py-0.5 rounded-full text-xs bg-blue-900 text-blue-300 border border-blue-700">
+            {formatSector(node)}
+          </span>
+          {i < chain.length - 1 && <span className="text-gray-500 text-xs">→</span>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// ─── VIEW 1: INTELLIGENCE FEED ───────────────────────────────────────────────
+function IntelligenceFeed({ feedData, narrativeData, lastRefresh }) {
+  const feed = feedData || SAMPLE_UNIFIED_FEED;
+  const narrative = narrativeData || SAMPLE_NARRATIVE;
+
+  return (
+    <div className="space-y-6">
+      {/* Status bar */}
+      <div className="flex flex-wrap gap-3">
+        {Object.entries(feed.systems || {}).map(([sys, info]) => (
+          <div key={sys} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg border border-gray-700 text-sm">
+            <span className={`w-2 h-2 rounded-full live-dot ${info.status === 'live' ? 'bg-green-400' : 'bg-red-400'}`} />
+            <span className="text-gray-300 capitalize">{sys.replace(/_/g,' ')}</span>
+            <span className="text-gray-500 text-xs">
+              {sys === 'squeeze_bot' ? `$${(info.equity||0).toLocaleString()}` : `${info.sector_signals || info.narrative_signals || info.positions || 0} signals`}
+            </span>
+          </div>
+        ))}
+        <div className="ml-auto text-xs text-gray-500 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block live-dot" />
+          Refreshed {timeAgo(lastRefresh)}
+        </div>
+      </div>
+
+      {/* Trajectory */}
+      {narrative.trajectory && (
+        <div className="bg-gray-800 rounded-xl border border-blue-800 p-4 space-y-3">
+          <h3 className="text-blue-400 font-semibold text-sm uppercase tracking-wider">SentinelCompass — Market Trajectory</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">{narrative.trajectory.update}</p>
+          <div className="space-y-1">
+            {(narrative.trajectory.key_events || []).map((ev, i) => (
+              <div key={i} className="flex gap-2 text-sm text-gray-400">
+                <span className="text-yellow-400 mt-0.5">›</span>
+                <span>{ev}</span>
+              </div>
+            ))}
+          </div>
+          {narrative.claim_summary && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <span className="px-2 py-0.5 rounded text-xs bg-green-900 text-green-300">{narrative.claim_summary.verified} verified</span>
+              <span className="px-2 py-0.5 rounded text-xs bg-red-900 text-red-300">{narrative.claim_summary.false} false</span>
+              <span className="px-2 py-0.5 rounded text-xs bg-yellow-900 text-yellow-300">{narrative.claim_summary.misleading} misleading</span>
+              <span className="px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{narrative.claim_summary.missing_context} missing context</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active Cascades */}
+      {(feed.active_cascades || []).length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-yellow-400 font-semibold text-sm uppercase tracking-wider">Active Cascades</h3>
+          {feed.active_cascades.map((c, i) => (
+            <div key={i} className="bg-gray-800 rounded-xl border border-yellow-800 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-yellow-300 text-sm font-medium">{c.trigger}</span>
+                <span className="text-xs text-gray-400">{c.confidence}% confidence</span>
+              </div>
+              <CascadeChain chain={c.chain} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Sector Consensus */}
+      <div className="space-y-2">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Sector Consensus</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Object.entries(feed.sector_consensus || {}).map(([sector, data]) => (
+            <div key={sector} className="bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-100">{formatSector(sector)}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${directionBg(data.direction)}`}>
+                  {data.direction}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>{data.sources ? [...new Set(data.sources)].join(", ") : "—"}</span>
+                {data.confidence > 0 && <span className={`font-medium ${directionColor(data.direction)}`}>{data.confidence}%</span>}
+              </div>
+              {data.confidence > 0 && (
+                <div className="w-full h-1 rounded-full bg-gray-700 overflow-hidden">
+                  <div className="h-full rounded-full bg-blue-500" style={{width: `${data.confidence}%`}} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pattern Alerts */}
+      {(narrative.pattern_alerts || []).length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-red-400 font-semibold text-sm uppercase tracking-wider">Pattern Alerts</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[...new Map((narrative.pattern_alerts||[]).map(p => [p.pattern, p])).values()].map((alert, i) => (
+              <div key={i} className="bg-gray-800 rounded-xl border border-red-900 p-4 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-red-300 font-medium text-sm">{alert.pattern.replace(/_/g,' ')}</span>
+                  <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded-full">{alert.frequency}×</span>
+                </div>
+                <p className="text-gray-400 text-xs leading-relaxed">{alert.market_implication}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Narrative Signals */}
+      <div className="space-y-2">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Narrative Signals</h3>
+        <div className="space-y-3">
+          {(narrative.narrative_signals || []).map((sig, i) => (
+            <div key={i} className="bg-gray-800 rounded-xl border border-gray-700 p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium text-gray-100 text-sm">{sig.title}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${sentimentBg(sig.sentiment)}`}>
+                  {sig.sentiment}
+                </span>
+              </div>
+              <p className="text-gray-400 text-xs leading-relaxed">{sig.description}</p>
+              <div className="flex flex-wrap gap-1 items-center">
+                <span className="text-gray-600 text-xs">{sig.date}</span>
+                <span className="text-gray-600 text-xs mx-1">·</span>
+                {(sig.affected_sectors || []).map(s => (
+                  <span key={s} className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{formatSector(s)}</span>
+                ))}
+                {(sig.structural_tags || []).map(t => (
+                  <span key={t} className="px-1.5 py-0.5 rounded text-xs bg-purple-900 text-purple-300">{t.replace(/_/g,' ')}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Market Signals */}
+      <div className="space-y-2">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Market Signals</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
+                <th className="text-left pb-2 pr-4">Contract</th>
+                <th className="text-right pb-2 pr-4">Price</th>
+                <th className="text-right pb-2 pr-4">24h Δ</th>
+                <th className="text-left pb-2">Platform</th>
+              </tr>
+            </thead>
+            <tbody className="space-y-1">
+              {(narrative.market_signals || []).map((sig, i) => (
+                <tr key={i} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  <td className="py-2 pr-4 text-gray-300">{sig.contract}</td>
+                  <td className="py-2 pr-4 text-right font-mono font-medium text-gray-100">{Math.round(sig.current_price * 100)}¢</td>
+                  <td className={`py-2 pr-4 text-right font-mono ${sig.price_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {sig.price_change >= 0 ? '+' : ''}{Math.round(sig.price_change * 100)}¢
+                  </td>
+                  <td className="py-2 text-gray-500 text-xs">{sig.platform}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── VIEW 2: TRADE COMMAND ────────────────────────────────────────────────────
+function PositionCard({ pos }) {
+  const [expanded, setExpanded] = useState(false);
+  const pnlColor = pos.pnl >= 0 ? 'text-green-400' : 'text-red-400';
+  const statusColors = {
+    thesis_intact: 'bg-green-900 text-green-300 border-green-700',
+    monitoring: 'bg-yellow-900 text-yellow-300 border-yellow-700',
+    thesis_broken: 'bg-red-900 text-red-300 border-red-700'
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+      <div
+        className="p-4 cursor-pointer hover:bg-gray-750 select-none"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono font-semibold text-gray-100">{pos.instrument}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${pos.direction === 'YES' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>{pos.direction}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded border ${statusColors[pos.status] || 'bg-gray-700 text-gray-300'}`}>{pos.status?.replace(/_/g,' ')}</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <span>Entry: {Math.round(pos.entry_price*100)}¢</span>
+              <span>Now: {Math.round(pos.current_price*100)}¢</span>
+              <span>Size: ${pos.size}</span>
+              <span className={`font-medium ${pnlColor}`}>{pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="text-right space-y-1 flex-shrink-0">
+            <div className="text-2xl font-bold" style={{color: healthColor(pos.thesis_health)}}>{pos.thesis_health}</div>
+            <div className="text-xs text-gray-500">health</div>
+          </div>
+        </div>
+        <div className="mt-3 space-y-1">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Thesis Health</span>
+            <span>{pos.thesis_health}/100</span>
+          </div>
+          <HealthBar value={pos.thesis_health} />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <Sparkline data={pos.health_history} width={80} height={24} />
+          <span className="text-xs text-gray-500">{expanded ? '▲ collapse' : '▼ expand'}</span>
+        </div>
+      </div>
+
+      <div className={`card-expand ${expanded ? 'open' : ''}`}>
+        <div className="px-4 pb-4 pt-2 border-t border-gray-700 space-y-4">
+          <div>
+            <div className="text-xs text-gray-500 uppercase mb-1">Thesis</div>
+            <p className="text-gray-300 text-sm leading-relaxed">{pos.thesis}</p>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 uppercase mb-2">Key Assumptions</div>
+            <div className="space-y-1">
+              {(pos.key_assumptions || []).map((a, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className={a.valid === true ? 'text-green-400' : a.valid === false ? 'text-red-400' : 'text-gray-500'}>
+                    {a.valid === true ? '✓' : a.valid === false ? '✗' : '?'}
+                  </span>
+                  <span className={a.valid === false ? 'text-red-300 line-through' : 'text-gray-300'}>{a.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 uppercase mb-2">Falsification Triggers</div>
+            <div className="space-y-1">
+              {(pos.falsification_triggers || []).map((t, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-gray-400">
+                  <span className="text-red-500 mt-0.5">⚡</span>
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TradeCommand({ thesisData }) {
+  const data = thesisData || SAMPLE_THESIS_DASHBOARD;
+
+  return (
+    <div className="space-y-6">
+      {/* Pending Approvals */}
+      {(data.pending_approvals || []).length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-yellow-400 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 live-dot" />
+            Pending Approval ({data.pending_approvals.length})
+          </h3>
+          {data.pending_approvals.map((ap) => (
+            <div key={ap.id} className="bg-gray-800 rounded-xl border border-yellow-700 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono font-semibold text-gray-100">{ap.instrument}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${ap.direction === 'YES' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>{ap.direction}</span>
+                    <span className="text-xs text-gray-400">${ap.proposed_size}</span>
+                  </div>
+                  <p className="text-gray-300 text-sm">{ap.thesis_summary}</p>
+                </div>
+                <span className="text-sm font-medium text-yellow-400 whitespace-nowrap">{Math.round(ap.confidence*100)}%</span>
+              </div>
+              <CascadeChain chain={ap.cascade_chain} />
+              <div className="bg-gray-900 rounded-lg p-3">
+                <div className="text-xs text-gray-500 mb-1">Telegram command to approve:</div>
+                <code className="text-green-400 text-sm font-mono">{ap.telegram_cmd}</code>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Active Positions */}
+      <div className="space-y-3">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">
+          Active Positions ({(data.active_positions || []).length})
+        </h3>
+        {(data.active_positions || []).map(pos => (
+          <PositionCard key={pos.id} pos={pos} />
+        ))}
+        {(!data.active_positions || data.active_positions.length === 0) && (
+          <div className="text-gray-500 text-sm text-center py-8 bg-gray-800 rounded-xl border border-gray-700">
+            No active positions
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── VIEW 3: CALIBRATION ─────────────────────────────────────────────────────
+function Calibration() {
+  const sampleBrier = 0.18;
+  const domains = [
+    { name: "Finance / Macro", trades: 0, brier: null, accuracy: null },
+    { name: "Geopolitics", trades: 0, brier: null, accuracy: null },
+    { name: "Energy", trades: 0, brier: null, accuracy: null },
+    { name: "Trade Policy", trades: 0, brier: null, accuracy: null },
+  ];
+  const bands = [
+    { label: "50–60%", predicted: 0, actual: 0 },
+    { label: "60–70%", predicted: 0, actual: 0 },
+    { label: "70–80%", predicted: 0, actual: 0 },
+    { label: "80–90%", predicted: 0, actual: 0 },
+    { label: "90–100%", predicted: 0, actual: 0 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-900/30 border border-blue-700 rounded-xl p-4 text-center">
+        <p className="text-blue-300 text-sm">
+          <span className="font-semibold">Phase 1 — Collecting data.</span> Calibration metrics build as trades resolve. Check back after first resolved positions.
+        </p>
+      </div>
+
+      {/* Overall Brier Score */}
+      <div className="flex flex-col sm:flex-row gap-6 items-center justify-center py-4">
+        <div className="text-center">
+          <div className="relative w-36 h-36 mx-auto">
+            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#374151" strokeWidth="10" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#60a5fa" strokeWidth="10"
+                strokeDasharray={`${(1 - sampleBrier) * 263.9} 263.9`} strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-gray-100">—</span>
+              <span className="text-xs text-gray-500">Brier</span>
+            </div>
+          </div>
+          <p className="text-sm text-gray-400 mt-2">Overall Brier Score</p>
+          <p className="text-xs text-gray-500">Lower is better · 0 = perfect · 1 = worst</p>
+        </div>
+        <div className="text-sm text-gray-400 space-y-2 max-w-xs">
+          <p className="font-medium text-gray-300">Target benchmarks:</p>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between gap-4"><span>Expert forecaster</span><span className="text-green-400">~0.15</span></div>
+            <div className="flex justify-between gap-4"><span>Good forecaster</span><span className="text-yellow-400">~0.20</span></div>
+            <div className="flex justify-between gap-4"><span>Baseline (50/50)</span><span className="text-red-400">0.25</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Domain Breakdown */}
+      <div className="space-y-2">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Domain Breakdown</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs uppercase border-b border-gray-700">
+                <th className="text-left pb-2 pr-4">Domain</th>
+                <th className="text-right pb-2 pr-4">Resolved</th>
+                <th className="text-right pb-2 pr-4">Brier</th>
+                <th className="text-right pb-2">Accuracy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {domains.map((d, i) => (
+                <tr key={i} className="border-b border-gray-800">
+                  <td className="py-2 pr-4 text-gray-300">{d.name}</td>
+                  <td className="py-2 pr-4 text-right text-gray-500">—</td>
+                  <td className="py-2 pr-4 text-right text-gray-500">—</td>
+                  <td className="py-2 text-right text-gray-500">—</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Confidence Band Chart */}
+      <div className="space-y-2">
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Confidence Calibration</h3>
+        <p className="text-xs text-gray-500">Predicted win rate vs actual win rate by confidence band</p>
+        <div className="space-y-3 pt-2">
+          {bands.map((b, i) => (
+            <div key={i} className="space-y-1">
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{b.label}</span>
+                <span>0 trades</span>
+              </div>
+              <div className="relative h-5 bg-gray-700 rounded-full overflow-hidden">
+                <div className="absolute inset-0 flex items-center px-2">
+                  <span className="text-xs text-gray-500">No data yet</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROOT APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('intelligence');
+  const [feedData, setFeedData] = useState(null);
+  const [narrativeData, setNarrativeData] = useState(null);
+  const [thesisData, setThesisData] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(new Date().toISOString());
+  const [loading, setLoading] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Try to load published dashboard_data.json first
+      const res = await fetch(`dashboard_data.json?t=${Date.now()}`);
+      if (res.ok) {
+        const all = await res.json();
+        if (all.unified_feed) setFeedData(all.unified_feed);
+        if (all.narrative_signals) setNarrativeData(all.narrative_signals);
+        if (all.thesis_dashboard) setThesisData(all.thesis_dashboard);
+        setLastRefresh(all.generated_at || new Date().toISOString());
+      }
+    } catch (e) {
+      // Silently fall back to embedded sample data
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    // Auto-refresh every 60 seconds on intelligence tab
+    const interval = setInterval(() => {
+      if (tab === 'intelligence') loadData();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [tab, loadData]);
+
+  const tabs = [
+    { id: 'intelligence', label: 'Intelligence', icon: '⚡' },
+    { id: 'trades', label: 'Trades', icon: '📊' },
+    { id: 'calibration', label: 'Calibration', icon: '🎯' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 live-dot" />
+            <span className="font-semibold text-gray-100">Kalshi Intelligence</span>
+            <span className="text-gray-600 text-xs hidden sm:inline">/ mikedmote52</span>
+          </div>
+          <button
+            onClick={loadData}
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded bg-gray-800 hover:bg-gray-700"
+          >
+            {loading ? '↻ loading...' : '↻ refresh'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="sticky top-14 z-40 bg-gray-900 border-b border-gray-800">
+        <div className="max-w-4xl mx-auto flex">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? 'tab-active text-blue-400'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <span className="text-base">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {tab === 'intelligence' && (
+          <IntelligenceFeed
+            feedData={feedData}
+            narrativeData={narrativeData}
+            lastRefresh={lastRefresh}
+          />
+        )}
+        {tab === 'trades' && (
+          <TradeCommand thesisData={thesisData} />
+        )}
+        {tab === 'calibration' && (
+          <Calibration />
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="text-center py-6 text-xs text-gray-600 border-t border-gray-800">
+        Kalshi Intelligence Dashboard · Auto-refreshes every 60s on Intelligence view
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
