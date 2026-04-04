@@ -143,7 +143,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-001",
       thesis_summary: "EU counter-tariff vote likely before April 15 — Kalshi market (66¢) underprices passage probability given EC committee composition and Liberation Day political pressure. EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements.",
       cascade_chain: ["geo", "trade_policy", "macro"],
-      instrument: "EUCOUNTTAR-26APR15",
+      instrument: "kxforeigntariff/retaliatory-tariffs",
       proposed_size: 8,
       kelly_quarter: 5,
       direction: "YES",
@@ -153,7 +153,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-002",
       thesis_summary: "Fed has no runway to cut before Q2 end. Three governor speeches in 48 hours confirm hold. Inflation sticky at 3.1%. Market at 22¢ still overpricing a cut — consensus requires 3 consecutive months below 2.5%, unachievable by July under current trajectory.",
       cascade_chain: ["macro", "finance"],
-      instrument: "FED-26Q2",
+      instrument: "kxratecut/fed-rate-cut/kxratecut-26dec31",
       proposed_size: 10,
       kelly_quarter: 6,
       direction: "NO",
@@ -163,7 +163,7 @@ const SAMPLE_THESIS_DASHBOARD = {
       id: "th-003",
       thesis_summary: "PLA strait exercises correlate with rhetorical escalation phase, not kinetic precursor. Xi economic focus constrains military adventurism during tariff war — historical pattern shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda.",
       cascade_chain: ["geo", "defense", "energy"],
-      instrument: "TAIWANSTRAIT-26",
+      instrument: "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
       proposed_size: 7,
       kelly_quarter: 4,
       direction: "YES",
@@ -173,7 +173,7 @@ const SAMPLE_THESIS_DASHBOARD = {
   active_positions: [
     {
       id: "pos-001",
-      instrument: "USRECESSION-26",
+      instrument: "kxrecession/us-recession",
       direction: "YES",
       entry_price: 0.28,
       current_price: 0.41,
@@ -197,7 +197,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-002",
-      instrument: "FED-26JUL",
+      instrument: "kxfed/fed-funds-rate/kxfed-26jul",
       direction: "NO",
       entry_price: 0.38,
       current_price: 0.22,
@@ -220,7 +220,7 @@ const SAMPLE_THESIS_DASHBOARD = {
     },
     {
       id: "pos-003",
-      instrument: "TAIWANINC-26",
+      instrument: "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
       direction: "NO",
       entry_price: 0.19,
       current_price: 0.23,
@@ -620,11 +620,11 @@ function ApprovalCard({ approval, onOpenKalshi, onReject }) {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </button>
         <p className="text-xs text-gray-600 text-center font-mono break-all leading-tight">
-          kalshi.com/markets/{approval.instrument.toLowerCase()}
+          kalshi.com/markets/{approval.instrument}
         </p>
         <div className="flex items-center gap-3">
           <a
-            href={`https://kalshi.com/markets/${approval.instrument.toLowerCase()}`}
+            href={`https://kalshi.com/markets/${approval.instrument}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 text-center text-xs text-gray-500 hover:text-gray-400 py-1 transition-colors"
@@ -768,6 +768,8 @@ function PositionCard({ pos }) {
   );
 }
 
+const SAMPLE_TRADE_IDS = new Set(["th-001", "th-002", "th-003"]);
+
 function TradeCommand({ thesisData }) {
   const data = thesisData || SAMPLE_THESIS_DASHBOARD;
   const [toasts, setToasts] = useState([]);
@@ -775,7 +777,15 @@ function TradeCommand({ thesisData }) {
   const [decisions, setDecisions] = useState(() => {
     try {
       const saved = localStorage.getItem('kalshi_decisions_v2');
-      return saved ? JSON.parse(saved) : { opened: [], executed: [], skipped: [], rejected: [] };
+      if (!saved) return { opened: [], executed: [], skipped: [], rejected: [] };
+      const parsed = JSON.parse(saved);
+      // Filter out sample trade IDs so they always reappear as pending
+      return {
+        opened:   (parsed.opened   || []).filter(d => !SAMPLE_TRADE_IDS.has(d.id)),
+        executed: (parsed.executed || []).filter(d => !SAMPLE_TRADE_IDS.has(d.id)),
+        skipped:  (parsed.skipped  || []).filter(d => !SAMPLE_TRADE_IDS.has(d.id)),
+        rejected: (parsed.rejected || []).filter(d => !SAMPLE_TRADE_IDS.has(d.id)),
+      };
     } catch(e) { return { opened: [], executed: [], skipped: [], rejected: [] }; }
   });
 
@@ -859,7 +869,7 @@ function TradeCommand({ thesisData }) {
   };
 
   const handleOpenKalshi = (approval, amount) => {
-    const kalshiUrl = `https://kalshi.com/markets/${approval.instrument.toLowerCase()}`;
+    const kalshiUrl = `https://kalshi.com/markets/${approval.instrument}`;
     console.log('[Kalshi] Opening URL:', kalshiUrl);
     window.open(kalshiUrl, '_blank');
     const entry = {
