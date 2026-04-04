@@ -139,13 +139,33 @@ const SAMPLE_THESIS_DASHBOARD = {
   pending_approvals: [
     {
       id: "th-001",
-      thesis_summary: "EU counter-tariff passage probability rising faster than Kalshi reflects — EC vote expected before April 15",
-      cascade_chain: ["trade_policy","agriculture","equity"],
+      thesis_summary: "EU counter-tariff vote likely before April 15 — Kalshi market (66¢) underprices passage probability given EC committee composition and Liberation Day political pressure. EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements.",
+      cascade_chain: ["geo", "trade_policy", "macro"],
       instrument: "TARIFF-EU-2026-APR",
       proposed_size: 250,
+      kelly_quarter: 75,
       direction: "YES",
-      confidence: 0.71,
-      telegram_cmd: "/approve th-001 YES $250"
+      confidence: 0.72
+    },
+    {
+      id: "th-002",
+      thesis_summary: "Fed has no runway to cut before Q2 end. Three governor speeches in 48 hours confirm hold. Inflation sticky at 3.1%. Market at 22¢ still overpricing a cut — consensus requires 3 consecutive months below 2.5%, unachievable by July under current trajectory.",
+      cascade_chain: ["macro", "finance"],
+      instrument: "FED-RATE-2026-Q2",
+      proposed_size: 75,
+      kelly_quarter: 50,
+      direction: "NO",
+      confidence: 0.65
+    },
+    {
+      id: "th-003",
+      thesis_summary: "PLA strait exercises correlate with rhetorical escalation phase, not kinetic precursor. Xi economic focus constrains military adventurism during tariff war — historical pattern shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda.",
+      cascade_chain: ["geo", "defense", "energy"],
+      instrument: "TAIWAN-STRAIT-2026",
+      proposed_size: 150,
+      kelly_quarter: 45,
+      direction: "YES",
+      confidence: 0.58
     }
   ],
   active_positions: [
@@ -486,6 +506,128 @@ function IntelligenceFeed({ feedData, narrativeData, lastRefresh }) {
   );
 }
 
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function ToastContainer({ toasts }) {
+  return (
+    <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
+      {toasts.map(t => (
+        <div key={t.id} className={`px-4 py-3 rounded-xl shadow-xl text-sm font-medium max-w-xs border ${
+          t.type === 'reject'  ? 'bg-red-900 text-red-200 border-red-700' :
+          t.type === 'error'   ? 'bg-gray-900 text-red-300 border-red-800' :
+          t.type === 'info'    ? 'bg-blue-900 text-blue-200 border-blue-700' :
+                                 'bg-green-900 text-green-200 border-green-700'
+        }`}>
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── APPROVAL CARD ───────────────────────────────────────────────────────────
+function ApprovalCard({ approval, onApprove, onReject }) {
+  const [amount, setAmount] = useState(approval.proposed_size);
+  const isModified = amount !== approval.proposed_size;
+  const STEP = 25;
+
+  const adjust = (delta) => setAmount(a => Math.max(STEP, a + delta));
+
+  const handleAmountChange = (e) => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v >= 0) setAmount(v);
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-xl border border-yellow-700 p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 live-dot flex-shrink-0" />
+            <span className="font-mono font-bold text-gray-100 text-base">{approval.instrument}</span>
+            <span className={`text-xs px-2 py-0.5 rounded font-semibold border ${
+              approval.direction === 'YES'
+                ? 'bg-green-900 text-green-300 border-green-700'
+                : 'bg-red-900 text-red-300 border-red-700'
+            }`}>
+              {approval.direction}
+            </span>
+          </div>
+          <CascadeChain chain={approval.cascade_chain} />
+        </div>
+        <div className="text-right flex-shrink-0 pl-2">
+          <div className="text-2xl font-bold text-yellow-400">{Math.round(approval.confidence * 100)}%</div>
+          <div className="text-xs text-gray-500">confidence</div>
+        </div>
+      </div>
+
+      {/* Thesis */}
+      <p className="text-gray-300 text-sm leading-relaxed">{approval.thesis_summary}</p>
+
+      {/* Kelly sizing + editable amount */}
+      <div className="bg-gray-900 rounded-lg p-3 space-y-3">
+        <div className="text-xs text-gray-400 leading-relaxed">
+          Quarter Kelly = <span className="text-blue-400 font-semibold">${approval.kelly_quarter}</span>
+          <span className="text-gray-600 mx-2">·</span>
+          System proposed: <span className="text-gray-300 font-semibold">${approval.proposed_size}</span>
+          {approval.proposed_size > approval.kelly_quarter * 1.5 && (
+            <span className="ml-2 text-yellow-500">(high conviction override)</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400">Trade size:</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => adjust(-STEP)}
+              className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-gray-200 text-xl font-bold flex items-center justify-center transition-colors select-none"
+              aria-label="Decrease"
+            >−</button>
+            <div className="flex items-center bg-gray-700 border border-gray-600 rounded-lg overflow-hidden focus-within:border-blue-500">
+              <span className="pl-3 text-gray-400 text-sm select-none">$</span>
+              <input
+                type="number"
+                value={amount}
+                onChange={handleAmountChange}
+                className="w-20 h-10 pr-3 bg-transparent text-gray-100 text-center text-sm font-medium focus:outline-none"
+                min="0"
+                step={STEP}
+              />
+            </div>
+            <button
+              onClick={() => adjust(STEP)}
+              className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-gray-200 text-xl font-bold flex items-center justify-center transition-colors select-none"
+              aria-label="Increase"
+            >+</button>
+          </div>
+          {isModified && (
+            <span className="text-xs text-yellow-400 font-medium">modified from ${approval.proposed_size}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => onApprove(approval, amount)}
+          className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
+            isModified
+              ? 'bg-blue-700 hover:bg-blue-600 active:bg-blue-500 text-white'
+              : 'bg-green-700 hover:bg-green-600 active:bg-green-500 text-white'
+          }`}
+        >
+          {isModified ? '✓ Modify & Approve' : '✓ Approve'}
+        </button>
+        <button
+          onClick={() => onReject(approval)}
+          className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm bg-red-900 hover:bg-red-800 active:bg-red-700 text-red-300 border border-red-800 transition-colors"
+        >
+          ✗ Reject
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── VIEW 2: TRADE COMMAND ────────────────────────────────────────────────────
 function PositionCard({ pos }) {
   const [expanded, setExpanded] = useState(false);
@@ -572,34 +714,202 @@ function PositionCard({ pos }) {
 
 function TradeCommand({ thesisData }) {
   const data = thesisData || SAMPLE_THESIS_DASHBOARD;
+  const [toasts, setToasts] = useState([]);
+  const [fileHandle, setFileHandle] = useState(null);
+  const [decisions, setDecisions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kalshi_decisions');
+      return saved ? JSON.parse(saved) : { approved: [], rejected: [] };
+    } catch(e) { return { approved: [], rejected: [] }; }
+  });
+
+  const addToast = (msg, type = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts(t => [...t, { id, msg, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+  };
+
+  const connectFile = async () => {
+    if (!('showOpenFilePicker' in window)) {
+      addToast('File System API not available — decisions saved to browser storage only.', 'info');
+      return;
+    }
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+        multiple: false
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      let existing = [];
+      try { existing = JSON.parse(text || '[]'); } catch(e) {}
+      setFileHandle(handle);
+      addToast('Connected: ' + handle.name + (existing.length ? ' (' + existing.length + ' existing entries)' : ''), 'info');
+    } catch(e) {
+      if (e.name !== 'AbortError') addToast('Could not connect file: ' + e.message, 'error');
+    }
+  };
+
+  const persistDecisions = async (newDecisions, handle) => {
+    try {
+      localStorage.setItem('kalshi_decisions', JSON.stringify(newDecisions));
+    } catch(e) {}
+    const fh = handle !== undefined ? handle : fileHandle;
+    if (fh) {
+      try {
+        const allEntries = [...newDecisions.approved, ...newDecisions.rejected]
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const writable = await fh.createWritable();
+        await writable.write(JSON.stringify(allEntries, null, 2));
+        await writable.close();
+      } catch(e) {
+        addToast('File write failed: ' + e.message, 'error');
+      }
+    }
+  };
+
+  const handleApprove = async (approval, amount) => {
+    const isModified = amount !== approval.proposed_size;
+    const entry = {
+      id: approval.id,
+      instrument: approval.instrument,
+      action: approval.direction,
+      amount,
+      status: 'approved',
+      timestamp: new Date().toISOString(),
+      original_proposed: approval.proposed_size,
+      modified: isModified
+    };
+    const newDecisions = { ...decisions, approved: [...decisions.approved, entry] };
+    setDecisions(newDecisions);
+    await persistDecisions(newDecisions);
+    const verb = isModified ? 'Modified & Approved' : 'Approved';
+    const side = approval.direction === 'YES' ? 'BUY YES' : 'SELL NO';
+    addToast(`${verb}: ${side} ${approval.instrument} @ $${amount}`, 'success');
+  };
+
+  const handleReject = async (approval) => {
+    const entry = {
+      id: approval.id,
+      instrument: approval.instrument,
+      action: approval.direction,
+      amount: 0,
+      status: 'rejected',
+      timestamp: new Date().toISOString(),
+      original_proposed: approval.proposed_size
+    };
+    const newDecisions = { ...decisions, rejected: [...decisions.rejected, entry] };
+    setDecisions(newDecisions);
+    await persistDecisions(newDecisions);
+    addToast(`Rejected: ${approval.instrument}`, 'reject');
+  };
+
+  const allDecidedIds = new Set([
+    ...decisions.approved.map(d => d.id),
+    ...decisions.rejected.map(d => d.id)
+  ]);
+
+  const pending = (data.pending_approvals || []).filter(ap => !allDecidedIds.has(ap.id));
+  const approvedItems = decisions.approved;
+  const rejectedItems = decisions.rejected;
 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} />
+
+      {/* File connection bar */}
+      <div className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${fileHandle ? 'bg-green-400' : 'bg-gray-500'}`} />
+          <span className="text-xs text-gray-400">
+            {fileHandle
+              ? <span>approvals.json <span className="text-green-400">connected</span> — decisions write to disk</span>
+              : 'approvals.json not connected — decisions saved to browser storage'}
+          </span>
+        </div>
+        <button
+          onClick={connectFile}
+          className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-gray-700 transition-colors whitespace-nowrap ml-2"
+        >
+          {fileHandle ? '↺ reconnect' : '📁 connect file'}
+        </button>
+      </div>
+
       {/* Pending Approvals */}
-      {(data.pending_approvals || []).length > 0 && (
+      {pending.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-yellow-400 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-yellow-400 live-dot" />
-            Pending Approval ({data.pending_approvals.length})
+            Pending Approval ({pending.length})
           </h3>
-          {data.pending_approvals.map((ap) => (
-            <div key={ap.id} className="bg-gray-800 rounded-xl border border-yellow-700 p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono font-semibold text-gray-100">{ap.instrument}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${ap.direction === 'YES' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>{ap.direction}</span>
-                    <span className="text-xs text-gray-400">${ap.proposed_size}</span>
-                  </div>
-                  <p className="text-gray-300 text-sm">{ap.thesis_summary}</p>
-                </div>
-                <span className="text-sm font-medium text-yellow-400 whitespace-nowrap">{Math.round(ap.confidence*100)}%</span>
+          {pending.map(ap => (
+            <ApprovalCard
+              key={ap.id}
+              approval={ap}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          ))}
+        </div>
+      )}
+
+      {pending.length === 0 && approvedItems.length === 0 && rejectedItems.length === 0 && (
+        <div className="text-gray-500 text-sm text-center py-8 bg-gray-800 rounded-xl border border-gray-700">
+          No pending approvals
+        </div>
+      )}
+
+      {/* Approved */}
+      {approvedItems.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-green-400 font-semibold text-sm uppercase tracking-wider">
+            Approved ({approvedItems.length})
+          </h3>
+          {approvedItems.map(d => (
+            <div key={d.id} className="bg-gray-800 rounded-xl border border-green-900 p-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${
+                  d.modified
+                    ? 'bg-blue-900 text-blue-300 border-blue-700'
+                    : 'bg-green-900 text-green-300 border-green-700'
+                }`}>
+                  {d.modified ? 'MODIFIED & APPROVED' : 'APPROVED'}
+                </span>
+                <span className="font-mono text-sm text-gray-200">{d.instrument}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${d.action === 'YES' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+                  {d.action}
+                </span>
+                <span className="text-sm font-semibold text-green-400">${d.amount}</span>
+                {d.modified && (
+                  <span className="text-xs text-gray-500">was ${d.original_proposed}</span>
+                )}
               </div>
-              <CascadeChain chain={ap.cascade_chain} />
-              <div className="bg-gray-900 rounded-lg p-3">
-                <div className="text-xs text-gray-500 mb-1">Telegram command to approve:</div>
-                <code className="text-green-400 text-sm font-mono">{ap.telegram_cmd}</code>
+              <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
+                {new Date(d.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Rejected */}
+      {rejectedItems.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-red-400 font-semibold text-sm uppercase tracking-wider">
+            Rejected ({rejectedItems.length})
+          </h3>
+          {rejectedItems.map(d => (
+            <div key={d.id} className="bg-gray-800 rounded-xl border border-gray-700 p-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-gray-700 text-red-400 border border-gray-600">
+                  REJECTED
+                </span>
+                <span className="font-mono text-sm text-gray-500">{d.instrument}</span>
+                <span className="text-xs text-gray-600">proposed ${d.original_proposed}</span>
               </div>
+              <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
+                {new Date(d.timestamp).toLocaleTimeString()}
+              </span>
             </div>
           ))}
         </div>
