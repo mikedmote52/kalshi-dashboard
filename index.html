@@ -41,6 +41,26 @@ const { useState, useEffect, useCallback } = React;
 
 const API_BASE = 'http://localhost:8080';
 
+// Auto-reset if ?reset in URL
+if (window.location.search.includes('reset')) {
+  localStorage.clear();
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
+// Map old ticker names to real Kalshi market paths
+const KALSHI_URL_MAP = {
+  'TARIFF-EU-2026-APR': 'kxforeigntariff/retaliatory-tariffs',
+  'FED-RATE-2026-Q2': 'kxratecut/fed-rate-cut/kxratecut-26dec31',
+  'TAIWAN-STRAIT-2026': 'kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan',
+  'USRECESSION-26': 'kxrecession/us-recession',
+  'FED-26JUL': 'kxfed/fed-funds-rate/kxfed-26jul',
+  'TAIWANINC-26': 'kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan',
+};
+function kalshiUrl(instrument) {
+  const mapped = KALSHI_URL_MAP[instrument] || instrument;
+  return `https://kalshi.com/markets/${mapped}`;
+}
+
 // ─── EMBEDDED SAMPLE DATA (fallback when no publish has run) ──────────────────
 const SAMPLE_UNIFIED_FEED = {
   generated_at: new Date().toISOString(),
@@ -620,11 +640,11 @@ function ApprovalCard({ approval, onOpenKalshi, onReject }) {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </button>
         <p className="text-xs text-gray-600 text-center font-mono break-all leading-tight">
-          kalshi.com/markets/{approval.instrument}
+          {kalshiUrl(approval.instrument).replace('https://', '')}
         </p>
         <div className="flex items-center gap-3">
           <a
-            href={`https://kalshi.com/markets/${approval.instrument}`}
+            href={kalshiUrl(approval.instrument)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 text-center text-xs text-gray-500 hover:text-gray-400 py-1 transition-colors"
@@ -869,9 +889,9 @@ function TradeCommand({ thesisData }) {
   };
 
   const handleOpenKalshi = (approval, amount) => {
-    const kalshiUrl = `https://kalshi.com/markets/${approval.instrument}`;
-    console.log('[Kalshi] Opening URL:', kalshiUrl);
-    window.open(kalshiUrl, '_blank');
+    const kalshiUrl_ = kalshiUrl(approval.instrument);
+    console.log('[Kalshi] Opening URL:', kalshiUrl_);
+    window.open(kalshiUrl_, '_blank');
     const entry = {
       id: approval.id,
       instrument: approval.instrument,
