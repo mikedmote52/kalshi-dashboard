@@ -1008,7 +1008,9 @@ function TradeCommand({ thesisData }) {
         };
         setDecisions(newDecisions);
         await persistDecisions(newDecisions);
-        addToast(`Executed: ${approval.instrument} ${approval.direction} $${amount}`, 'success');
+        addToast(`Executed: ${approval.instrument} ${approval.direction} $${amount} — opening Kalshi...`, 'success');
+        // Open Kalshi so user can verify the order landed
+        setTimeout(() => window.open(kalshiUrl(approval.instrument), '_blank'), 800);
       } else {
         const errText = await res.text().catch(() => 'Unknown error');
         addToast(`Trade failed: ${errText}`, 'error');
