@@ -485,6 +485,78 @@
         "direction": "YES",
         "confidence": 0.58
       }
+    ],
+    "active_positions": [
+      {
+        "id": "pos-001",
+        "instrument": "kxrecession/us-recession",
+        "direction": "YES",
+        "entry_price": 0.28,
+        "current_price": 0.41,
+        "size": 500,
+        "thesis_health": 84,
+        "status": "thesis_intact",
+        "pnl": 65.00,
+        "thesis": "Tariff shock (54% on China, 20% EU) creates demand destruction. Historical precedent: 2018-19 tariff cycle produced 2-quarter GDP drag. Current labor market softness amplifies downside.",
+        "key_assumptions": [
+          {"text": "Tariffs implemented as announced (April 5)", "valid": true},
+          {"text": "No Fed emergency cut before June", "valid": true},
+          {"text": "China does not negotiate bilateral exemption", "valid": null},
+          {"text": "Consumer sentiment continues deteriorating", "valid": true}
+        ],
+        "falsification_triggers": [
+          "Trump announces tariff pause or rollback",
+          "Fed cuts rates before Q2 end",
+          "GDP Q1 print above 2.5%"
+        ],
+        "health_history": [62, 68, 71, 78, 82, 84]
+      },
+      {
+        "id": "pos-002",
+        "instrument": "kxfed/fed-funds-rate/kxfed-26jul",
+        "direction": "NO",
+        "entry_price": 0.38,
+        "current_price": 0.22,
+        "size": 300,
+        "thesis_health": 91,
+        "status": "thesis_intact",
+        "pnl": 48.00,
+        "thesis": "Fed governors have explicitly stated no cut in April. Inflation at 3.1% (sticky). Trump pressure historically causes Fed to hold or tighten to prove independence. Consensus requires 3 consecutive months below 2.5% \u2014 not achievable by July.",
+        "key_assumptions": [
+          {"text": "Inflation stays above 2.5% through Q2", "valid": true},
+          {"text": "Powell not fired or resigned", "valid": true},
+          {"text": "No financial market crisis forcing emergency cut", "valid": true}
+        ],
+        "falsification_triggers": [
+          "Emergency FOMC meeting called",
+          "Powell removal and replacement signals dovish pivot",
+          "CPI drops below 2.5% two consecutive months"
+        ],
+        "health_history": [70, 75, 80, 85, 89, 91]
+      },
+      {
+        "id": "pos-003",
+        "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
+        "direction": "NO",
+        "entry_price": 0.19,
+        "current_price": 0.23,
+        "size": 150,
+        "thesis_health": 52,
+        "status": "monitoring",
+        "pnl": -6.00,
+        "thesis": "PLA exercises are signaling behavior, not operational precursor. Xi prioritizes economic stability during tariff war. Incident risk historically spikes post-party congress, not mid-year.",
+        "key_assumptions": [
+          {"text": "PLA exercises remain demonstrative, not kinetic", "valid": true},
+          {"text": "U.S. does not deploy carrier group through strait", "valid": null},
+          {"text": "Xi economic focus limits military adventurism", "valid": true}
+        ],
+        "falsification_triggers": [
+          "U.S. carrier group transit of Taiwan Strait",
+          "Taiwan declares emergency",
+          "PLA live-fire hits Taiwanese territorial waters"
+        ],
+        "health_history": [75, 72, 68, 60, 55, 52]
+      }
     ]
   }
 }

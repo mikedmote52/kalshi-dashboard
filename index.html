@@ -1102,7 +1102,11 @@ function TradeCommand({ thesisData }) {
     ...decisions.rejected.map(d => d.id),
   ]);
 
-  const pending = (apiPending !== null ? apiPending : (data.pending_approvals || [])).filter(ap => !allDecidedIds.has(ap.id));
+  // Merge API pending with static data — API takes priority, static fills gaps
+  const apiItems = apiPending || [];
+  const apiIds = new Set(apiItems.map(a => a.id));
+  const staticItems = (data.pending_approvals || []).filter(a => !apiIds.has(a.id));
+  const pending = [...apiItems, ...staticItems].filter(ap => !allDecidedIds.has(ap.id));
   const openedItems = decisions.opened;
   const tradeLog = [...decisions.executed, ...decisions.skipped]
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
