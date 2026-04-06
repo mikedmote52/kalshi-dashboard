@@ -23,8 +23,10 @@ THESIS_DASHBOARD = Path.home() / "Desktop/claude kalshi/data/thesis_dashboard.js
 APPROVALS_FILE = REPO_DIR / "approvals.json"
 OUTPUT = REPO_DIR / "dashboard_data.json"
 
+# DB connection — Docker exposes Postgres on localhost:5432
+DB_URL = "postgresql://user:pass@localhost:5432/market_intel"
+
 # Sample pending approvals — shown when no live DB data is available.
-# Replace with real DB queries once approval_queue table is set up.
 SAMPLE_PENDING_APPROVALS = [
     {
         "id": "th-001",
@@ -34,9 +36,9 @@ SAMPLE_PENDING_APPROVALS = [
             "EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements."
         ),
         "cascade_chain": ["geo", "trade_policy", "macro"],
-        "instrument": "TARIFF-EU-2026-APR",
-        "proposed_size": 250,
-        "kelly_quarter": 75,
+        "instrument": "kxforeigntariff/retaliatory-tariffs",
+        "proposed_size": 8,
+        "kelly_quarter": 5,
         "direction": "YES",
         "confidence": 0.72,
     },
@@ -48,9 +50,9 @@ SAMPLE_PENDING_APPROVALS = [
             "3 consecutive months below 2.5%, unachievable by July under current trajectory."
         ),
         "cascade_chain": ["macro", "finance"],
-        "instrument": "FED-RATE-2026-Q2",
-        "proposed_size": 75,
-        "kelly_quarter": 50,
+        "instrument": "kxratecut/fed-rate-cut/kxratecut-26dec31",
+        "proposed_size": 10,
+        "kelly_quarter": 6,
         "direction": "NO",
         "confidence": 0.65,
     },
@@ -62,9 +64,9 @@ SAMPLE_PENDING_APPROVALS = [
             "shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda."
         ),
         "cascade_chain": ["geo", "defense", "energy"],
-        "instrument": "TAIWAN-STRAIT-2026",
-        "proposed_size": 150,
-        "kelly_quarter": 45,
+        "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
+        "proposed_size": 7,
+        "kelly_quarter": 4,
         "direction": "YES",
         "confidence": 0.58,
     },
@@ -121,61 +123,65 @@ def read_approvals() -> list:
 
 
 def fetch_pending_from_db() -> Optional[List]:
-    """
-    Attempt to read pending approvals from Postgres approval_queue table.
-    Returns None if DB is not accessible (falls back to sample data).
-
-    Wire this up once the approval_queue table exists:
-        CREATE TABLE approval_queue (
-            id TEXT PRIMARY KEY,
-            instrument TEXT,
-            direction TEXT,
-            proposed_size INTEGER,
-            kelly_quarter INTEGER,
-            confidence REAL,
-            thesis_summary TEXT,
-            cascade_chain JSONB,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-    """
+    """Read pending/active theses from Postgres and format for the dashboard."""
     try:
         import psycopg2  # type: ignore
         import os
 
-        conn_str = os.environ.get("KALSHI_DB_URL")
-        if not conn_str:
-            return None
-
+        conn_str = os.environ.get("KALSHI_DB_URL", DB_URL)
         conn = psycopg2.connect(conn_str)
         cur = conn.cursor()
+
+        # Fetch active and pending theses with their opportunity instrument data
         cur.execute(
             """
-            SELECT id, instrument, direction, proposed_size, kelly_quarter,
-                   confidence, thesis_summary, cascade_chain
-            FROM approval_queue
-            WHERE status = 'pending'
-            ORDER BY created_at DESC
+            SELECT
+                tr.id,
+                tr.thesis_summary,
+                tr.cascade_chain,
+                tr.probability_estimate,
+                tr.status,
+                tr.health_score,
+                aq.proposed_size,
+                aq.kelly_fraction,
+                aq.proposed_action,
+                aq.status as approval_status,
+                aq.proposed_instrument
+            FROM thesis_records tr
+            LEFT JOIN approval_queue aq ON aq.thesis_id = tr.id
+            
+            WHERE tr.status IN ('proposed', 'active', 'degraded')
+            ORDER BY tr.created_at DESC
             """
         )
         rows = cur.fetchall()
         cur.close()
         conn.close()
 
-        return [
-            {
-                "id": row[0],
-                "instrument": row[1],
-                "direction": row[2],
-                "proposed_size": row[3],
-                "kelly_quarter": row[4],
-                "confidence": float(row[5]),
-                "thesis_summary": row[6],
-                "cascade_chain": row[7] if isinstance(row[7], list) else [],
-            }
-            for row in rows
-        ]
-    except Exception:
+        results = []
+        for i, row in enumerate(rows):
+            raw_inst = row[10] or "unknown"
+            instrument_id = raw_inst.split(":", 1)[-1] if ":" in str(raw_inst) else str(raw_inst)
+            direction = (row[8] or "buy").upper()
+
+            results.append({
+                "id": f"th-{i+1:03d}",
+                "thesis_id": str(row[0]),
+                "thesis_summary": row[1] or "",
+                "cascade_chain": row[2] if isinstance(row[2], list) else [],
+                "instrument": instrument_id,
+                "proposed_size": float(row[6]) if row[6] else 8,
+                "kelly_quarter": str(row[7]) if row[7] else "1/4 Kelly",
+                "direction": direction,
+                "confidence": float(row[3]) if row[3] else 0.5,
+                "status": row[4],
+                "health_score": float(row[5]) if row[5] else 100,
+                "approval_status": row[9] or "pending",
+            })
+
+        return results if results else None
+    except Exception as e:
+        print(f"  ! DB query failed: {e}")
         return None
 
 
