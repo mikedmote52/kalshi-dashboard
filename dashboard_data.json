@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-04-04T06:13:00.276098+00:00",
+  "generated_at": "2026-04-06T06:22:53.630509+00:00",
   "unified_feed": {
-    "generated_at": "2026-04-03T22:58:22.323515",
+    "generated_at": "2026-04-05T22:07:02.770200",
     "systems": {
       "kalshi": {
         "status": "live",
-        "published_at": "2026-04-03T22:58:19.907248",
+        "published_at": "2026-04-05T22:07:00.943804",
         "sector_signals": 1,
         "opportunities": 20
       },
       "sentinel": {
         "status": "live",
-        "published_at": "2026-04-03T22:58:20.924944",
-        "narrative_signals": 10,
+        "published_at": "2026-04-05T22:07:01.436724",
+        "narrative_signals": 8,
         "pattern_alerts": 4,
         "market_signals": 18
       },
       "squeeze_bot": {
         "status": "live",
-        "published_at": "2026-04-03T22:58:21.656855",
+        "published_at": "2026-04-05T22:07:02.092119",
         "positions": 10,
-        "equity": 100517.12
+        "equity": 100508.8
       }
     },
     "sector_consensus": {
@@ -35,10 +35,9 @@
         "sources": [
           "sentinel",
           "sentinel",
-          "sentinel",
           "sentinel"
         ],
-        "direction": "active",
+        "direction": "bearish",
         "confidence": 0
       },
       "tech_ai": {
@@ -48,11 +47,9 @@
           "sentinel",
           "sentinel",
           "sentinel",
-          "sentinel",
-          "sentinel",
           "sentinel"
         ],
-        "direction": "active",
+        "direction": "bearish",
         "confidence": 0
       },
       "finance": {
@@ -69,25 +66,9 @@
         "sources": [
           "sentinel",
           "sentinel",
-          "sentinel",
           "sentinel"
         ],
         "direction": "bearish",
-        "confidence": 0
-      },
-      "energy": {
-        "sources": [
-          "sentinel",
-          "sentinel"
-        ],
-        "direction": "active",
-        "confidence": 0
-      },
-      "real_estate": {
-        "sources": [
-          "sentinel"
-        ],
-        "direction": "active",
         "confidence": 0
       }
     },
@@ -96,7 +77,7 @@
   },
   "narrative_signals": {
     "source": "sentinel_compass",
-    "published_at": "2026-04-03T22:58:20.924944",
+    "published_at": "2026-04-05T22:07:01.436724",
     "status": "live",
     "narrative_signals": [
       {
@@ -218,38 +199,6 @@
           "amplification_pattern"
         ],
         "description": "Commerce Department expanded AI chip export controls to include 12 additional countries deemed potential re-export risks to China. NVIDIA and AMD shares fell 4-6%. Industry groups warned of long-term "
-      },
-      {
-        "title": "China PLA Conducts Taiwan Strait Exercises",
-        "date": "2026-03-29",
-        "category": "geopolitics",
-        "affected_sectors": [
-          "energy",
-          "defense",
-          "tech_ai"
-        ],
-        "sentiment": "negative",
-        "structural_tags": [
-          "source_independence",
-          "authority_shift"
-        ],
-        "description": "Chinese PLA Navy and Air Force conducted three days of exercises in the Taiwan Strait, including live-fire drills. Taiwan ADIZ was breached by 23 aircraft on March 29. Pentagon issued a statement call"
-      },
-      {
-        "title": "OPEC+ Delays Output Increase Amid Tariff Uncertainty",
-        "date": "2026-03-28",
-        "category": "energy_markets",
-        "affected_sectors": [
-          "energy",
-          "tech_ai",
-          "agriculture",
-          "real_estate"
-        ],
-        "sentiment": "confirmed",
-        "structural_tags": [
-          "source_independence"
-        ],
-        "description": "OPEC+ deferred a planned 400,000 bpd output increase by 60 days, citing \"demand uncertainty\" from U.S. tariff impacts. Brent crude rose 2.4% on the news. Energy analysts noted the delay gives OPEC+ ge"
       }
     ],
     "pattern_alerts": [
@@ -427,8 +376,7 @@
     "claim_summary": {
       "false": 1,
       "misleading": 2,
-      "missing_context": 1,
-      "verified": 1
+      "missing_context": 1
     },
     "trajectory": {
       "update": "Trajectory: Multi-front pressure campaign in week one of April. Trade war escalation is primary market mover \u2014 Kalshi recession odds jumped 13 points in 48 hours. Simultaneously: Fed independence stress test underway (Powell threat), EU-U.S. relationship deteriorating, China using Taiwan exercises as leverage signal. Pattern alert: authority_shift and amplification_pattern co-occurring across trade, monetary, and defense domains simultaneously \u2014 historically associated with volatility clustering. Watch: Will EU member states approve counter-tariffs? Will China retaliate before April 5 implementation date?",
@@ -484,78 +432,6 @@
         "kelly_quarter": 4,
         "direction": "YES",
         "confidence": 0.58
-      }
-    ],
-    "active_positions": [
-      {
-        "id": "pos-001",
-        "instrument": "kxrecession/us-recession",
-        "direction": "YES",
-        "entry_price": 0.28,
-        "current_price": 0.41,
-        "size": 500,
-        "thesis_health": 84,
-        "status": "thesis_intact",
-        "pnl": 65.00,
-        "thesis": "Tariff shock (54% on China, 20% EU) creates demand destruction. Historical precedent: 2018-19 tariff cycle produced 2-quarter GDP drag. Current labor market softness amplifies downside.",
-        "key_assumptions": [
-          {"text": "Tariffs implemented as announced (April 5)", "valid": true},
-          {"text": "No Fed emergency cut before June", "valid": true},
-          {"text": "China does not negotiate bilateral exemption", "valid": null},
-          {"text": "Consumer sentiment continues deteriorating", "valid": true}
-        ],
-        "falsification_triggers": [
-          "Trump announces tariff pause or rollback",
-          "Fed cuts rates before Q2 end",
-          "GDP Q1 print above 2.5%"
-        ],
-        "health_history": [62, 68, 71, 78, 82, 84]
-      },
-      {
-        "id": "pos-002",
-        "instrument": "kxfed/fed-funds-rate/kxfed-26jul",
-        "direction": "NO",
-        "entry_price": 0.38,
-        "current_price": 0.22,
-        "size": 300,
-        "thesis_health": 91,
-        "status": "thesis_intact",
-        "pnl": 48.00,
-        "thesis": "Fed governors have explicitly stated no cut in April. Inflation at 3.1% (sticky). Trump pressure historically causes Fed to hold or tighten to prove independence. Consensus requires 3 consecutive months below 2.5% \u2014 not achievable by July.",
-        "key_assumptions": [
-          {"text": "Inflation stays above 2.5% through Q2", "valid": true},
-          {"text": "Powell not fired or resigned", "valid": true},
-          {"text": "No financial market crisis forcing emergency cut", "valid": true}
-        ],
-        "falsification_triggers": [
-          "Emergency FOMC meeting called",
-          "Powell removal and replacement signals dovish pivot",
-          "CPI drops below 2.5% two consecutive months"
-        ],
-        "health_history": [70, 75, 80, 85, 89, 91]
-      },
-      {
-        "id": "pos-003",
-        "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
-        "direction": "NO",
-        "entry_price": 0.19,
-        "current_price": 0.23,
-        "size": 150,
-        "thesis_health": 52,
-        "status": "monitoring",
-        "pnl": -6.00,
-        "thesis": "PLA exercises are signaling behavior, not operational precursor. Xi prioritizes economic stability during tariff war. Incident risk historically spikes post-party congress, not mid-year.",
-        "key_assumptions": [
-          {"text": "PLA exercises remain demonstrative, not kinetic", "valid": true},
-          {"text": "U.S. does not deploy carrier group through strait", "valid": null},
-          {"text": "Xi economic focus limits military adventurism", "valid": true}
-        ],
-        "falsification_triggers": [
-          "U.S. carrier group transit of Taiwan Strait",
-          "Taiwan declares emergency",
-          "PLA live-fire hits Taiwanese territorial waters"
-        ],
-        "health_history": [75, 72, 68, 60, 55, 52]
       }
     ]
   }
