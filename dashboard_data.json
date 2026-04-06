@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-06T09:02:31.896743+00:00",
+  "generated_at": "2026-04-06T09:03:26.631586+00:00",
   "unified_feed": {
     "generated_at": "2026-04-06T01:35:32.634683",
     "systems": {
@@ -394,44 +394,21 @@
     "pending_approvals": [
       {
         "id": "th-001",
-        "thesis_summary": "EU counter-tariff vote likely before April 15 \u2014 Kalshi market (66\u00a2) underprices passage probability given EC committee composition and Liberation Day political pressure. EC has history of rapid retaliation votes within 10 days of U.S. tariff announcements.",
+        "thesis_id": "448e3d97-2299-4287-88be-5ac0616ab1dd",
+        "thesis_summary": "Agricultural ETF DBA will surge 8-12% as markets wake up to locked-in food inflation from current diesel/fertilizer costs [ANALYSIS]. Spring planting decisions over next 6 weeks are irreversible, guaranteeing higher food prices regardless of Iran resolution [ANALYSIS].",
         "cascade_chain": [
-          "geo",
-          "trade_policy",
+          "energy",
+          "agriculture",
           "macro"
         ],
-        "instrument": "kxforeigntariff/retaliatory-tariffs",
-        "proposed_size": 8,
-        "kelly_quarter": 5,
-        "direction": "YES",
-        "confidence": 0.72
-      },
-      {
-        "id": "th-002",
-        "thesis_summary": "Fed has no runway to cut before Q2 end. Three governor speeches confirm hold. Inflation sticky at 3.1%. Market at 22\u00a2 still overpricing a cut \u2014 consensus requires 3 consecutive months below 2.5%, unachievable by July under current trajectory.",
-        "cascade_chain": [
-          "macro",
-          "finance"
-        ],
-        "instrument": "kxratecut/fed-rate-cut/kxratecut-26dec31",
-        "proposed_size": 10,
-        "kelly_quarter": 6,
-        "direction": "NO",
-        "confidence": 0.65
-      },
-      {
-        "id": "th-003",
-        "thesis_summary": "PLA strait exercises correlate with rhetorical escalation phase, not kinetic precursor. Xi economic focus constrains military adventurism during tariff war \u2014 historical pattern shows PLA exercises de-escalate within 30 days when trade tensions dominate Beijing's agenda.",
-        "cascade_chain": [
-          "geo",
-          "defense",
-          "energy"
-        ],
-        "instrument": "kxxitaiwan/will-xi-jinping-visit-taiwan/kxxitaiwan",
-        "proposed_size": 7,
-        "kelly_quarter": 4,
-        "direction": "YES",
-        "confidence": 0.58
+        "instrument": "DBA",
+        "proposed_size": 75.0,
+        "kelly_quarter": "Full Kelly",
+        "direction": "BUY",
+        "confidence": 0.65,
+        "status": "proposed",
+        "health_score": 100.0,
+        "approval_status": "pending"
       }
     ]
   }
