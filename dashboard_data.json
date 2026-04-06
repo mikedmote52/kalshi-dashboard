@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-04-06T09:34:17.544685+00:00",
+  "generated_at": "2026-04-06T18:14:51.403117+00:00",
   "unified_feed": {
-    "generated_at": "2026-04-06T01:35:32.634683",
+    "generated_at": "2026-04-06T11:08:09.991832",
     "systems": {
       "kalshi": {
         "status": "live",
-        "published_at": "2026-04-06T01:35:31.533985",
+        "published_at": "2026-04-06T11:08:09.199689",
         "sector_signals": 1,
         "opportunities": 20
       },
       "sentinel": {
         "status": "live",
-        "published_at": "2026-04-06T01:35:31.868816",
+        "published_at": "2026-04-06T11:08:09.265625",
         "narrative_signals": 8,
         "pattern_alerts": 4,
         "market_signals": 18
       },
       "squeeze_bot": {
         "status": "live",
-        "published_at": "2026-04-06T01:35:32.084659",
-        "positions": 10,
-        "equity": 100512.14
+        "published_at": "2026-04-06T11:08:09.379582",
+        "positions": 13,
+        "equity": 100511.31
       }
     },
     "sector_consensus": {
@@ -77,7 +77,7 @@
   },
   "narrative_signals": {
     "source": "sentinel_compass",
-    "published_at": "2026-04-06T01:35:31.868816",
+    "published_at": "2026-04-06T11:08:09.265625",
     "status": "live",
     "narrative_signals": [
       {
@@ -393,90 +393,23 @@
   "thesis_dashboard": {
     "pending_approvals": [
       {
-        "id": "1dd95ffa",
-        "full_id": "1dd95ffa-0dda-41ac-88e5-e6bd7099d5a3",
+        "id": "th-001",
+        "thesis_id": "448e3d97-2299-4287-88be-5ac0616ab1dd",
         "thesis_summary": "Agricultural ETF DBA will surge 8-12% as markets wake up to locked-in food inflation from current diesel/fertilizer costs [ANALYSIS]. Spring planting decisions over next 6 weeks are irreversible, guaranteeing higher food prices regardless of Iran resolution [ANALYSIS].",
         "cascade_chain": [
           "energy",
           "agriculture",
           "macro"
         ],
-        "instrument": "alpaca:DBA",
+        "instrument": "DBA",
         "proposed_size": 75.0,
         "kelly_quarter": "Full Kelly",
         "direction": "BUY",
         "confidence": 0.65,
-        "expires_at": "2026-04-06T12:35:09.486241+00:00",
-        "created_at": "2026-04-06T08:35:09.455166+00:00"
-      },
-      {
-        "id": "0a065810",
-        "full_id": "0a065810-2067-4d5b-8f97-806a20022250",
-        "thesis_summary": "The 10Y yield at 4.313% [DATA] is mispriced for a stagflation regime where oil above $109 [DATA] locks in persistent inflation while constraining Fed flexibility. Markets haven't connected oil persistence to irreversible agricultural decisions happening NOW that guarantee food inflation through 2026 [ANALYSIS].",
-        "cascade_chain": [
-          "energy",
-          "agriculture",
-          "macro"
-        ],
-        "instrument": "alpaca:TBT",
-        "proposed_size": 50.0,
-        "kelly_quarter": "Full Kelly",
-        "direction": "BUY",
-        "confidence": 0.68,
-        "expires_at": "2026-04-06T12:45:35.616966+00:00",
-        "created_at": "2026-04-06T08:45:35.595287+00:00"
-      },
-      {
-        "id": "730c8756",
-        "full_id": "730c8756-b317-487b-8ae0-03cf006f95cf",
-        "thesis_summary": "Agriculture ETF at $27.16 [DATA] doesn't reflect irreversible input cost decisions being locked in over next 6 weeks as farmers face diesel >$4 and natural gas at $2.79 [DATA] affecting fertilizer. The Strait of Hormuz disruption affects both energy AND agricultural chemical shipments [ANALYSIS], creating overlooked double squeeze.",
-        "cascade_chain": [
-          "geopolitical",
-          "energy",
-          "agriculture"
-        ],
-        "instrument": "alpaca:DBA",
-        "proposed_size": 40.0,
-        "kelly_quarter": "1/2 Kelly",
-        "direction": "BUY",
-        "confidence": 0.45,
-        "expires_at": "2026-04-06T12:45:35.620827+00:00",
-        "created_at": "2026-04-06T08:45:35.595287+00:00"
-      },
-      {
-        "id": "d6f845b5",
-        "full_id": "d6f845b5-5e46-4461-82ef-0586731d7b90",
-        "thesis_summary": "Agricultural input shock is irreversible with farmers making planting decisions in next 6 weeks at diesel >$4/gallon [ANALYSIS]. Even if oil moderates, fertilizer and fuel costs are locked in for summer 2026 growing season, driving 20-30% input cost inflation [ANALYSIS] that will flow through to food prices by August.",
-        "cascade_chain": [
-          "energy",
-          "agriculture",
-          "macro"
-        ],
-        "instrument": "alpaca:CORN or split between CORN/SOYB",
-        "proposed_size": 50.0,
-        "kelly_quarter": "Full Kelly",
-        "direction": "BUY",
-        "confidence": 0.72,
-        "expires_at": "2026-04-06T13:32:28.587374+00:00",
-        "created_at": "2026-04-06T09:32:28.543557+00:00"
-      },
-      {
-        "id": "5f40db52",
-        "full_id": "5f40db52-0573-400e-b396-05827c3d5183",
-        "thesis_summary": "VIX at 24.54 [DATA] dramatically underprices the cascade risk from oil shock \u2192 Fed trapped \u2192 credit stress sequence. Historical pattern shows VIX lags commodity volatility by 5-10 days [ANALYSIS], and current energy volatility spreading to equities suggests VIX should be 35+ within 2 weeks [ANALYSIS].",
-        "cascade_chain": [
-          "energy",
-          "macro"
-        ],
-        "instrument": "alpaca:VXX",
-        "proposed_size": 25.0,
-        "kelly_quarter": "1/2 Kelly",
-        "direction": "BUY",
-        "confidence": 0.58,
-        "expires_at": "2026-04-06T13:32:28.600118+00:00",
-        "created_at": "2026-04-06T09:32:28.543557+00:00"
+        "status": "proposed",
+        "health_score": 100.0,
+        "approval_status": "pending"
       }
-    ],
-    "active_positions": []
+    ]
   }
 }
