@@ -29,18 +29,38 @@
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
+    @keyframes spin-fast { to { transform: rotate(360deg); } }
+    .spinner { animation: spin-fast 0.8s linear infinite; }
   </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script type="text/babel">
 const { useState, useEffect, useCallback, useRef } = React;
 
-// ─── DATA LOADING ──────────────────────────────────────────────
-// Dashboard reads from dashboard_data.json (published by the bot)
-// Approvals are stored in browser and optionally synced to approvals.json
+// ─── TRADE EXECUTION ──────────────────────────────────────────
+// Detects if approval server is running on localhost:5050
+// If yes: clicking Approve places a REAL trade on Kalshi
+// If no: falls back to localStorage-only (view mode)
+const API_BASE = window.location.hostname === "localhost" ? "" : null;
 
+async function executeApproval(ticker, side, amount) {
+  if (!API_BASE && API_BASE !== "") {
+    return { success: false, error: "Not connected to approval server. Run approval_server.py locally." };
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker, side, amount }),
+    });
+    return await res.json();
+  } catch (e) {
+    return { success: false, error: `Server connection failed: ${e.message}` };
+  }
+}
+
+// ─── DATA LOADING ──────────────────────────────────────────────
 function timeAgo(isoStr) {
   if (!isoStr) return "never";
   const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
@@ -68,6 +88,20 @@ function ToastContainer({ toasts }) {
   );
 }
 
+// ─── CONNECTION STATUS ───────────────────────────────────────────
+function ConnectionBadge() {
+  const isLocal = API_BASE !== null;
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+      isLocal
+        ? 'bg-green-900 text-green-300 border border-green-700'
+        : 'bg-gray-800 text-gray-500 border border-gray-700'
+    }`}>
+      {isLocal ? 'LIVE TRADING' : 'VIEW ONLY'}
+    </span>
+  );
+}
+
 // ─── ACCOUNT OVERVIEW ────────────────────────────────────────────
 function AccountOverview({ data }) {
   const balance = data?.balance ?? 0;
@@ -75,7 +109,6 @@ function AccountOverview({ data }) {
   const totalCost = positions.reduce((s, p) => s + (p.cost_dollars || 0), 0);
   const totalPnl = data?.total_pnl ?? 0;
   const openCount = positions.length;
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 text-center">
@@ -104,29 +137,41 @@ function AccountOverview({ data }) {
 function OpportunityCard({ opp, onApprove, onReject, decisions }) {
   const [amount, setAmount] = useState(opp.suggested_size || 5);
   const [expanded, setExpanded] = useState(false);
-
+  const [executing, setExecuting] = useState(false);
   const decided = decisions[opp.ticker];
+
   if (decided) {
     return (
-      <div className={`bg-gray-800 rounded-xl border p-3 flex items-center justify-between gap-2 ${
+      <div className={`bg-gray-800 rounded-xl border p-3 space-y-1 ${
         decided.action === 'approved' ? 'border-green-800' : 'border-red-800'
       }`}>
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${
-            decided.action === 'approved'
-              ? 'bg-green-900 text-green-300 border-green-700'
-              : 'bg-red-900 text-red-300 border-red-700'
-          }`}>
-            {decided.action === 'approved' ? 'APPROVED' : 'REJECTED'}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${
+              decided.action === 'approved'
+                ? 'bg-green-900 text-green-300 border-green-700'
+                : 'bg-red-900 text-red-300 border-red-700'
+            }`}>
+              {decided.action === 'approved' ? (decided.executed ? 'EXECUTED' : 'APPROVED') : 'REJECTED'}
+            </span>
+            <span className="font-mono text-sm text-gray-300 truncate">{opp.title || opp.ticker}</span>
+            {decided.action === 'approved' && (
+              <span className="text-sm font-semibold text-green-400">${decided.amount}</span>
+            )}
+          </div>
+          <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
+            {new Date(decided.timestamp).toLocaleTimeString()}
           </span>
-          <span className="font-mono text-sm text-gray-300 truncate">{opp.title || opp.ticker}</span>
-          {decided.action === 'approved' && (
-            <span className="text-sm font-semibold text-green-400">${decided.amount}</span>
-          )}
         </div>
-        <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
-          {new Date(decided.timestamp).toLocaleTimeString()}
-        </span>
+        {decided.order_id && (
+          <div className="text-xs text-gray-500">
+            Order: <span className="font-mono text-gray-400">{decided.order_id}</span>
+            {decided.contracts && <span> | {decided.contracts} contracts @ {decided.price_cents}c = ${decided.cost_dollars?.toFixed(2)}</span>}
+          </div>
+        )}
+        {decided.error && (
+          <div className="text-xs text-red-400">Error: {decided.error}</div>
+        )}
       </div>
     );
   }
@@ -134,6 +179,7 @@ function OpportunityCard({ opp, onApprove, onReject, decisions }) {
   const edgePct = (opp.edge * 100).toFixed(1);
   const aiPct = (opp.ai_prob * 100).toFixed(0);
   const mktPct = (opp.market_prob * 100).toFixed(0);
+  const isLive = API_BASE !== null;
 
   return (
     <div className="bg-gray-800 rounded-xl border border-yellow-700 overflow-hidden">
@@ -161,6 +207,11 @@ function OpportunityCard({ opp, onApprove, onReject, decisions }) {
               }`}>
                 {opp.confidence}
               </span>
+              {opp.related_count > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-purple-900 text-purple-300">
+                  +{opp.related_count} related
+                </span>
+              )}
             </div>
           </div>
           <div className="text-right flex-shrink-0 pl-2">
@@ -185,6 +236,14 @@ function OpportunityCard({ opp, onApprove, onReject, decisions }) {
           </div>
         </div>
 
+        {/* Red team flaw */}
+        {opp.red_team_flaw && (
+          <div className="bg-red-950 border border-red-900 rounded-lg p-3">
+            <div className="text-xs text-red-500 uppercase font-semibold mb-1">Red Team Challenge ({opp.red_team_strength})</div>
+            <p className="text-red-300 text-xs leading-relaxed">{opp.red_team_flaw}</p>
+          </div>
+        )}
+
         {/* Thesis toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
@@ -192,7 +251,6 @@ function OpportunityCard({ opp, onApprove, onReject, decisions }) {
         >
           {expanded ? '- Hide reasoning' : '+ Show AI reasoning'}
         </button>
-
         <div className={`card-expand ${expanded ? 'open' : ''}`}>
           <div className="space-y-3 pt-1">
             {opp.thesis && (
@@ -225,30 +283,48 @@ function OpportunityCard({ opp, onApprove, onReject, decisions }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Amount:</span>
-            <button onClick={() => setAmount(a => Math.max(1, a - 1))}
+            <button onClick={() => setAmount(a => Math.max(0.5, +(a - 0.5).toFixed(2)))}
               className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 text-lg font-bold flex items-center justify-center">-</button>
             <div className="flex items-center bg-gray-700 border border-gray-600 rounded-lg overflow-hidden">
               <span className="pl-2 text-gray-400 text-sm">$</span>
-              <input type="number" value={amount}
+              <input type="number" value={amount} step="0.50" min="0.50" max="10"
                 onChange={e => { const n = parseFloat(e.target.value); if (!isNaN(n) && n >= 0) setAmount(n); }}
-                onBlur={() => { if (amount < 1) setAmount(1); if (amount > 10) setAmount(10); }}
+                onBlur={() => { if (amount < 0.5) setAmount(0.5); if (amount > 10) setAmount(10); }}
                 className="w-16 h-8 pr-2 bg-transparent text-gray-100 text-center text-sm font-medium focus:outline-none" />
             </div>
-            <button onClick={() => setAmount(a => Math.min(10, a + 1))}
+            <button onClick={() => setAmount(a => Math.min(10, +(a + 0.5).toFixed(2)))}
               className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 text-lg font-bold flex items-center justify-center">+</button>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => onApprove(opp, amount)}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-green-600 hover:bg-green-500 text-white transition-colors">
-            Approve ${amount} Trade
+          <button onClick={() => { setExecuting(true); onApprove(opp, amount).finally(() => setExecuting(false)); }}
+            disabled={executing}
+            className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+              executing
+                ? 'bg-gray-700 text-gray-400 cursor-wait'
+                : 'bg-green-600 hover:bg-green-500 text-white'
+            }`}>
+            {executing ? (
+              <>
+                <svg className="w-4 h-4 spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="32 32" /></svg>
+                Placing Trade...
+              </>
+            ) : (
+              isLive ? `Execute $${amount} Trade` : `Approve $${amount} Trade`
+            )}
           </button>
           <button onClick={() => onReject(opp)}
             className="px-4 py-3 rounded-xl font-semibold text-sm bg-red-900 hover:bg-red-800 text-red-300 border border-red-800 transition-colors">
             Reject
           </button>
         </div>
+
+        {!isLive && (
+          <div className="text-center text-xs text-gray-600">
+            Run <code className="bg-gray-900 px-1 py-0.5 rounded text-gray-500">python3 approval_server.py</code> to enable live trading
+          </div>
+        )}
 
         <a href={`https://kalshi.com/markets/${opp.ticker}`} target="_blank" rel="noopener noreferrer"
           className="block text-center text-xs text-gray-600 hover:text-gray-400 transition-colors">
@@ -297,28 +373,6 @@ function ScanView({ data, decisions, onApprove, onReject }) {
         )}
       </div>
 
-      {/* How it works */}
-      {!scan && (
-        <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4 space-y-2">
-          <h3 className="text-blue-400 font-semibold text-sm">How This Works</h3>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            The bot pulls open prediction markets from Kalshi, sends them to Claude AI for probability estimation, and identifies markets where the AI's estimate diverges from the market price by at least 10%.
-            You review each opportunity here, approve or reject it, and only approved trades get executed.
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1 text-xs">
-            <span className="px-2 py-1 rounded bg-gray-800 text-gray-300">1. Pull Markets</span>
-            <span className="text-gray-600">then</span>
-            <span className="px-2 py-1 rounded bg-gray-800 text-gray-300">2. AI Analysis</span>
-            <span className="text-gray-600">then</span>
-            <span className="px-2 py-1 rounded bg-gray-800 text-gray-300">3. Find Edges</span>
-            <span className="text-gray-600">then</span>
-            <span className="px-2 py-1 rounded bg-yellow-900 text-yellow-300 font-semibold">4. You Approve</span>
-            <span className="text-gray-600">then</span>
-            <span className="px-2 py-1 rounded bg-gray-800 text-gray-300">5. Execute</span>
-          </div>
-        </div>
-      )}
-
       {/* Decision summary */}
       {opportunities.length > 0 && (
         <div className="flex gap-3 text-xs">
@@ -329,7 +383,7 @@ function ScanView({ data, decisions, onApprove, onReject }) {
           )}
           {approvedCount > 0 && (
             <span className="px-2 py-1 rounded bg-green-900 text-green-300">
-              {approvedCount} approved
+              {approvedCount} executed
             </span>
           )}
           {rejectedCount > 0 && (
@@ -370,10 +424,8 @@ function ScanView({ data, decisions, onApprove, onReject }) {
 function PositionsView({ data }) {
   const positions = data?.positions || [];
   const trades = data?.trade_history || [];
-
   return (
     <div className="space-y-6">
-      {/* Open positions */}
       <div className="space-y-3">
         <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">
           Open Positions ({positions.length})
@@ -387,9 +439,7 @@ function PositionsView({ data }) {
                   <span className="font-mono text-gray-500">{pos.ticker}</span>
                   <span className={`px-1.5 py-0.5 rounded ${
                     pos.side === 'yes' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
-                  }`}>
-                    {pos.side?.toUpperCase()}
-                  </span>
+                  }`}>{pos.side?.toUpperCase()}</span>
                   <span className="text-gray-400">x{pos.contracts} @ {pos.price_cents}c</span>
                 </div>
               </div>
@@ -404,22 +454,15 @@ function PositionsView({ data }) {
             </div>
             {pos.thesis && <p className="text-xs text-gray-400 leading-relaxed">{pos.thesis}</p>}
             <a href={`https://kalshi.com/markets/${pos.ticker}`} target="_blank" rel="noopener noreferrer"
-              className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
-              View on Kalshi
-            </a>
+              className="text-xs text-blue-500 hover:text-blue-400 transition-colors">View on Kalshi</a>
           </div>
         )) : (
-          <div className="text-gray-500 text-sm text-center py-8 bg-gray-800 rounded-xl border border-gray-700">
-            No open positions
-          </div>
+          <div className="text-gray-500 text-sm text-center py-8 bg-gray-800 rounded-xl border border-gray-700">No open positions</div>
         )}
       </div>
 
-      {/* Trade history */}
       <div className="space-y-3">
-        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">
-          Trade History ({trades.length})
-        </h3>
+        <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Trade History ({trades.length})</h3>
         {trades.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -451,9 +494,7 @@ function PositionsView({ data }) {
                         t.status === 'resolved'
                           ? t.pnl_dollars > 0 ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
                           : 'bg-gray-700 text-gray-400'
-                      }`}>
-                        {t.status === 'resolved' ? (t.resolution || '').toUpperCase() : 'OPEN'}
-                      </span>
+                      }`}>{t.status === 'resolved' ? (t.resolution || '').toUpperCase() : 'OPEN'}</span>
                     </td>
                     <td className={`py-2 text-right font-mono font-medium ${
                       t.status === 'resolved'
@@ -482,7 +523,6 @@ function CalibrationView({ data }) {
   const perf = data?.performance;
   const trades = data?.trade_history || [];
   const resolved = trades.filter(t => t.status === 'resolved');
-
   const brier = perf?.brier_score;
   const wins = perf?.wins ?? 0;
   const losses = perf?.losses ?? 0;
@@ -494,12 +534,11 @@ function CalibrationView({ data }) {
       {total === 0 && (
         <div className="bg-blue-900/30 border border-blue-700 rounded-xl p-4 text-center">
           <p className="text-blue-300 text-sm">
-            <span className="font-semibold">Collecting data.</span> Calibration metrics will appear as trades resolve. Run scans, approve trades, and check back once markets settle.
+            <span className="font-semibold">Collecting data.</span> Calibration metrics will appear as trades resolve.
           </p>
         </div>
       )}
 
-      {/* Brier Score Gauge */}
       <div className="flex flex-col sm:flex-row gap-6 items-center justify-center py-4">
         <div className="text-center">
           <div className="relative w-36 h-36 mx-auto">
@@ -533,7 +572,6 @@ function CalibrationView({ data }) {
         </div>
       </div>
 
-      {/* Resolved trades */}
       {resolved.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-gray-400 font-semibold text-sm uppercase tracking-wider">Resolved Predictions</h3>
@@ -549,7 +587,6 @@ function CalibrationView({ data }) {
                       {won ? 'WIN' : 'LOSS'}
                     </span>
                     <span className="text-sm text-gray-300 truncate">{t.title || t.ticker}</span>
-                    <span className="text-xs text-gray-500">AI: {((t.ai_probability||0)*100).toFixed(0)}% vs Mkt: {((t.market_probability||0)*100).toFixed(0)}%</span>
                   </div>
                   <span className={`font-mono font-medium text-sm ${won ? 'text-green-400' : 'text-red-400'}`}>
                     {t.pnl_dollars >= 0 ? '+' : ''}${(t.pnl_dollars||0).toFixed(2)}
@@ -572,25 +609,68 @@ function App() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [decisions, setDecisions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('kalshi_bot_decisions_v3') || '{}'); }
+    try { return JSON.parse(localStorage.getItem('kalshi_bot_decisions_v4') || '{}'); }
     catch { return {}; }
   });
 
   const addToast = (msg, type = 'success') => {
     const id = Date.now() + Math.random();
     setToasts(t => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 5000);
   };
 
   const persistDecisions = useCallback((d) => {
-    try { localStorage.setItem('kalshi_bot_decisions_v3', JSON.stringify(d)); } catch {}
+    try { localStorage.setItem('kalshi_bot_decisions_v4', JSON.stringify(d)); } catch {}
   }, []);
 
-  const handleApprove = (opp, amount) => {
-    const next = { ...decisions, [opp.ticker]: { action: 'approved', amount, timestamp: new Date().toISOString(), opp } };
-    setDecisions(next);
-    persistDecisions(next);
-    addToast(`Approved: ${opp.title || opp.ticker} for $${amount}`);
+  const handleApprove = async (opp, amount) => {
+    const isLive = API_BASE !== null;
+
+    if (isLive) {
+      // LIVE MODE: Place real trade via approval server
+      addToast(`Placing trade: ${opp.side.toUpperCase()} ${opp.ticker} for $${amount}...`, 'info');
+      const result = await executeApproval(opp.ticker, opp.side, amount);
+
+      if (result.success) {
+        const next = {
+          ...decisions,
+          [opp.ticker]: {
+            action: 'approved',
+            executed: true,
+            amount,
+            order_id: result.order_id,
+            contracts: result.contracts,
+            price_cents: result.price_cents,
+            cost_dollars: result.cost_dollars,
+            timestamp: new Date().toISOString(),
+            opp,
+          }
+        };
+        setDecisions(next);
+        persistDecisions(next);
+        addToast(`TRADE EXECUTED: ${result.contracts} contracts of ${opp.ticker} @ ${result.price_cents}c ($${result.cost_dollars.toFixed(2)})`);
+      } else {
+        const next = {
+          ...decisions,
+          [opp.ticker]: {
+            action: 'approved',
+            executed: false,
+            amount,
+            error: result.error,
+            timestamp: new Date().toISOString(),
+          }
+        };
+        setDecisions(next);
+        persistDecisions(next);
+        addToast(`Trade failed: ${result.error}`, 'error');
+      }
+    } else {
+      // VIEW MODE: Just record locally
+      const next = { ...decisions, [opp.ticker]: { action: 'approved', amount, timestamp: new Date().toISOString(), opp } };
+      setDecisions(next);
+      persistDecisions(next);
+      addToast(`Approved: ${opp.title || opp.ticker} for $${amount} (not connected — start approval_server.py to execute)`);
+    }
   };
 
   const handleReject = (opp) => {
@@ -620,15 +700,14 @@ function App() {
   }, [loadData]);
 
   const tabs = [
-    { id: 'scan', label: 'Scan', icon: '?' },
-    { id: 'positions', label: 'Positions', icon: '?' },
-    { id: 'calibration', label: 'Calibration', icon: '?' },
+    { id: 'scan', label: 'Scan', icon: '' },
+    { id: 'positions', label: 'Positions', icon: '' },
+    { id: 'calibration', label: 'Calibration', icon: '' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       <ToastContainer toasts={toasts} />
-
       {/* Header */}
       <div className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -636,6 +715,7 @@ function App() {
             <div className={`w-2 h-2 rounded-full ${data ? 'bg-green-400' : 'bg-gray-500'} live-dot`} />
             <span className="font-semibold text-gray-100">Kalshi Prediction Bot</span>
             <span className="text-gray-600 text-xs hidden sm:inline">/ $100 portfolio</span>
+            <ConnectionBadge />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">{lastRefresh ? timeAgo(lastRefresh) : ''}</span>
@@ -656,7 +736,7 @@ function App() {
               className={`px-4 py-3 text-sm font-medium transition-colors ${
                 tab === t.id ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-500 hover:text-gray-300'
               }`}>
-              {t.icon} {t.label}
+              {t.label}
             </button>
           ))}
         </div>
@@ -665,7 +745,6 @@ function App() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <AccountOverview data={data} />
-
         {tab === 'scan' && (
           <ScanView data={data} decisions={decisions} onApprove={handleApprove} onReject={handleReject} />
         )}
@@ -673,9 +752,8 @@ function App() {
         {tab === 'calibration' && <CalibrationView data={data} />}
       </div>
 
-      {/* Footer */}
       <div className="text-center text-xs text-gray-600 py-6 border-t border-gray-800">
-        Kalshi Prediction Bot — Scan Markets / AI Analysis / Find Edges / You Approve / Execute
+        Kalshi Prediction Bot — AI Scan / News Context / Red Team / You Approve / Auto Execute
       </div>
     </div>
   );
