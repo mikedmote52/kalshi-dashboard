@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-30T08:30:11.006685",
-  "pipeline_heartbeat_at": "2026-04-30T08:30:11.006689",
+  "generated_at": "2026-04-30T08:30:52.630068",
+  "pipeline_heartbeat_at": "2026-04-30T08:30:52.630073",
   "balance": 281.22,
   "total_pnl": 156.24,
   "positions": 12,
@@ -151,7 +151,7 @@
     }
   ],
   "latest_scan": {
-    "timestamp": "2026-04-30T08:30:10.658902",
+    "timestamp": "2026-04-30T08:30:52.289485",
     "markets_pulled": 306,
     "markets_analyzed": 306,
     "opportunities_found": 0,
