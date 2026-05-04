@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-01T13:32:23.243713",
-  "pipeline_heartbeat_at": "2026-05-01T13:32:23.243723",
+  "generated_at": "2026-05-04T02:25:57.401321",
+  "pipeline_heartbeat_at": "2026-05-04T02:25:57.401329",
   "balance": 588.83,
   "total_pnl": 156.24,
   "positions": 12,
@@ -151,46 +151,13 @@
     }
   ],
   "latest_scan": {
-    "timestamp": "2026-05-01T13:31:08.974731",
+    "timestamp": "2026-05-04T02:25:56.961262",
     "markets_pulled": 306,
     "markets_analyzed": 306,
-    "opportunities_found": 2,
+    "opportunities_found": 0,
     "trades_placed": 0
   },
-  "opportunities": [
-    {
-      "ticker": "KXMUSKTRILLION-27",
-      "title": "Elon Musk trillionaire by 2027",
-      "side": "no",
-      "ai_prob": 0.2516602965137983,
-      "market_prob": 0.74,
-      "edge": 0.415055,
-      "confidence": "medium",
-      "reasoning": "Musk would need his net worth to roughly quadruple from ~$250B in 8 months. Even with a SpaceX IPO, this requires extreme valuations and perfect execution across multiple companies simultaneously.",
-      "thesis": "Market is pricing in best-case scenarios for SpaceX IPO and Tesla without accounting for execution risks and market volatility.",
-      "counter_thesis": "A successful SpaceX IPO at massive valuation plus Tesla AI breakthrough could create exponential wealth growth.",
-      "red_team_flaw": "The AI is underestimating how quickly exponential wealth can compound when someone already has $200+ billion and controls companies in the fastest-growing sectors of the economy.",
-      "red_team_strength": "moderate",
-      "related_count": 0,
-      "suggested_size": 73.6
-    },
-    {
-      "ticker": "KXAGICO-COMP-26Q4",
-      "title": "Company announces AGI by Jan 2027",
-      "side": "yes",
-      "ai_prob": 0.3322218972213866,
-      "market_prob": 0.16,
-      "edge": 0.11193,
-      "confidence": "low",
-      "reasoning": "8-month timeline with competitive pressure between OpenAI, Google, Anthropic creates strong incentives for AGI announcements. Recent Microsoft-OpenAI deal changes increase competitive dynamics.",
-      "thesis": "Competitive AI market makes AGI announcement increasingly likely as companies seek differentiation and investment.",
-      "counter_thesis": "Industry coordination could prevent premature AGI claims that might trigger regulation or public backlash.",
-      "red_team_flaw": "The AI overestimates competitive pressure while ignoring that premature AGI claims would invite immediate government intervention and public scrutiny that could destroy company value.",
-      "red_team_strength": "strong",
-      "related_count": 3,
-      "suggested_size": 30.18
-    }
-  ],
+  "opportunities": [],
   "trade_history": [
     {
       "trade_date": "2026-04-22",
